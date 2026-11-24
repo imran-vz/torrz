@@ -72,3 +72,7 @@ State lives in `~/Library/Application Support/Torrz` on macOS (`$TORRZ_HOME` ove
   the window works).
 
 Created in [T3 Code](https://t3.codes).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
