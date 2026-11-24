@@ -185,11 +185,11 @@ impl Backend {
             }
             Command::Add { source, paused, dir, category } => {
                 let id = self.engine.add(source, *paused, dir.as_deref())?;
-                if let Some(cat) = category {
-                    if let Some(t) = torrents().into_iter().find(|t| t.id == id) {
-                        self.cfg().categories.insert(t.hash, cat.clone());
-                        self.save();
-                    }
+                if let Some(cat) = category
+                    && let Some(t) = torrents().into_iter().find(|t| t.id == id)
+                {
+                    self.cfg().categories.insert(t.hash, cat.clone());
+                    self.save();
                 }
                 Response::data(format!("added #{id}"), serde_json::json!({ "id": id }))
             }

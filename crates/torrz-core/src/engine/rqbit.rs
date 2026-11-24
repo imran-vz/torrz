@@ -68,7 +68,7 @@ impl Engine for RqbitEngine {
             let Some(stats) = t.stats else { continue };
             let finished = stats.finished;
             let (down, up, live_peers, seen) = match &stats.live {
-                Some(l) => (l.download_speed.as_bytes(), l.upload_speed.as_bytes(), l.snapshot.peer_stats.live as u32, l.snapshot.peer_stats.seen as u32),
+                Some(l) => (l.download_speed.as_bytes(), l.upload_speed.as_bytes(), l.snapshot.peer_stats.live, l.snapshot.peer_stats.seen),
                 None => (0, 0, 0, 0),
             };
             let state = match stats.state {

@@ -39,41 +39,52 @@ pub enum Sub {
     #[command(alias = "ls")]
     List,
     /// One torrent with its files, peers and pieces.
-    Show { target: String },
+    Show {
+        /// An id, an info hash or `selected`.
+        target: String,
+    },
     /// Session totals: speeds, limits, DHT, port, free space.
     Stats,
     /// Add a magnet link, a URL or a .torrent file.
     Add {
+        /// A magnet link, an http(s) URL, or the path of a .torrent file.
         source: String,
+        /// Add it without starting it.
         #[arg(long)]
         paused: bool,
         /// Where to save it (default: the download folder).
         #[arg(long)]
         dir: Option<String>,
+        /// The category to file it under (shown in the sidebar).
         #[arg(long)]
         category: Option<String>,
     },
     /// Pause torrents: ids, info hashes, `all` or `selected`.
     Pause {
+        /// Ids, info hashes, `all` or `selected`.
         #[arg(required = true)]
         targets: Vec<String>,
     },
     /// Resume torrents.
     #[command(alias = "start")]
     Resume {
+        /// Ids, info hashes, `all` or `selected`.
         #[arg(required = true)]
         targets: Vec<String>,
     },
     /// Remove torrents, keeping their files unless told otherwise.
     #[command(alias = "remove")]
     Rm {
+        /// Ids, info hashes, `all` or `selected`.
         #[arg(required = true)]
         targets: Vec<String>,
+        /// Also delete the downloaded files from disk. This cannot be undone.
         #[arg(long)]
         delete_files: bool,
     },
     /// Choose which files of a torrent to download.
     Files {
+        /// An id, an info hash or `selected`. `torrz show` lists the file indices.
         target: String,
         /// File indices to download, comma separated.
         #[arg(long, value_delimiter = ',')]
@@ -84,27 +95,36 @@ pub enum Sub {
     },
     /// Speed limits: `12M`, `800k` or `none`.
     Limit {
+        /// Download limit a second, such as `12M` or `800k`; `none` removes it.
         #[arg(long)]
         down: Option<String>,
+        /// Upload limit a second; `none` removes it.
         #[arg(long)]
         up: Option<String>,
     },
     /// Switch the alternate (slow) limits; with no argument, toggle them.
     AltLimits {
+        /// Leave out to toggle.
         #[arg(value_enum)]
         state: Option<OnOff>,
     },
     /// Put torrents in a category, or take them out with --clear.
     Category {
+        /// Ids, info hashes, `all` or `selected`.
         #[arg(required = true)]
         targets: Vec<String>,
+        /// The category to put them in.
         #[arg(long, conflicts_with = "clear", required_unless_present = "clear")]
         name: Option<String>,
+        /// Take them out of their category instead.
         #[arg(long)]
         clear: bool,
     },
     /// Show a torrent's files in the file manager.
-    Reveal { target: String },
+    Reveal {
+        /// An id, an info hash or `selected`.
+        target: String,
+    },
     /// Move the window: what it shows, selects and has open.
     Ui {
         #[command(subcommand)]
@@ -114,6 +134,7 @@ pub enum Sub {
 
 #[derive(Args, Debug)]
 pub struct Toggle {
+    /// Leave out to toggle.
     #[arg(value_enum)]
     state: Option<OnOff>,
 }
@@ -123,49 +144,83 @@ pub enum UiSub {
     /// Everything the window shows, as JSON.
     State,
     /// all, downloading, seeding, completed, paused, errors, category:NAME or tracker:HOST.
-    Filter { name: String },
+    Filter {
+        /// The group to show, as the sidebar names them.
+        name: String,
+    },
     /// Select torrents (none clears the selection).
-    Select { targets: Vec<String> },
+    Select {
+        /// Ids, info hashes or `all`. The last one is the torrent the inspector shows.
+        targets: Vec<String>,
+    },
     /// general, files, peers, trackers, pieces or log.
-    Tab { name: String },
+    Tab {
+        /// The inspector tab to show.
+        name: String,
+    },
     /// name, size, progress, status, down, up, eta, ratio, peers or added.
     Sort {
+        /// The column to sort by; `added` restores the order torrents were added in.
         column: String,
+        /// Largest first. With neither flag, sorting a column again reverses it.
         #[arg(long, conflicts_with = "asc")]
         desc: bool,
+        /// Smallest first.
         #[arg(long)]
         asc: bool,
     },
     /// Filter the list by name (an empty string clears it).
-    Search { query: String },
+    Search {
+        /// Words that must all appear in a torrent's name.
+        query: String,
+    },
     /// Open, close or toggle the command palette, and set what is typed in it.
     Palette {
+        /// Leave out to toggle.
         #[arg(value_enum)]
         state: Option<OnOff>,
+        /// What to type into it (opens it if it is closed).
         #[arg(long)]
         query: Option<String>,
     },
     /// Move the palette's highlight by this many rows.
     PaletteMove {
+        /// Rows to move: positive is down, negative is up, and it wraps.
         #[arg(allow_hyphen_values = true)]
         delta: i32,
     },
     /// Run the highlighted palette row.
     PaletteRun,
     /// add, remove, limits or none.
-    Dialog { name: String },
+    Dialog {
+        /// The dialog to open; `none` closes whichever is open.
+        name: String,
+    },
     /// Set a field of the open dialog: source, paused, delete-files, down or up.
-    Field { name: String, value: String },
+    Field {
+        /// The field's name.
+        name: String,
+        /// Text for source, down and up; `on` or `off` for paused and delete-files.
+        value: String,
+    },
     /// Press the open dialog's main button.
     Confirm,
     /// Close the open dialog or palette.
     Cancel,
+    /// Show, hide or toggle the sidebar.
     Sidebar(Toggle),
+    /// Show, hide or toggle the inspector under the table.
     Inspector(Toggle),
     /// show, hide, minimize or quit.
-    Window { action: String },
+    Window {
+        /// Hiding closes the window and keeps the torrents running; quit stops them.
+        action: String,
+    },
     /// The app's icon: auto (follows the system), light or dark.
-    Icon { style: String },
+    Icon {
+        /// Which version of the icon the Dock shows while Torrz runs.
+        style: String,
+    },
 }
 
 /// What a command line asks for.

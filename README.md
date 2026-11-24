@@ -1,78 +1,161 @@
-<img src="assets/icon.svg" width="64" height="64" alt="">
+<img src="assets/icon.svg" width="96" height="96" alt="Torrz icon">
 
 # Torrz
 
-A desktop BitTorrent client whose every control is also a command. The window is built with
-[Rune](https://github.com/anomalyco/rune); the engine is [librqbit](https://github.com/ikatson/rqbit).
+A desktop BitTorrent client whose every control is also a command.
 
-## Run it
+Anything you can click in the window, you can run from a terminal as `torrz …`, and the
+window shows you the command for what you just clicked. The window is drawn with
+[Rune](https://github.com/anomalyco/rune); the torrent engine is
+[librqbit](https://github.com/ikatson/rqbit). Both are Rust, and so is everything in between.
+
+![The Torrz window: sidebar, torrent table and inspector](design/screens/selected.png)
+
+> **Status:** early. It downloads and seeds real torrents and is tested on macOS. Linux
+> should build but is untested; Windows has no command line yet. See
+> [what is missing](#what-is-missing).
+
+## Features
+
+- **A proper desktop window.** A source list with filters, categories and trackers; a
+  sortable table; an inspector with files, peers, trackers, a piece map and a speed graph.
+- **A command for everything.** Selecting a row, switching a tab, opening a dialog and
+  ticking a checkbox each have a `torrz` line. A test fails the build if a control is added
+  without one.
+- **A command palette.** ⌘K lists every action beside its command line; ⌘C copies the line.
+- **A command log.** The inspector's Log tab records each click and each CLI call as the
+  line that ran, with its result.
+- **Real BitTorrent.** Magnet links, DHT, peer exchange, uTP, UDP trackers, private
+  torrents, per-file selection, fast resume, speed limits and UPnP, all from librqbit.
+- **A demo mode.** `--demo` runs a simulated swarm, so you can try the whole interface
+  without touching the network or the disk.
+
+## Install
+
+You need a recent Rust toolchain (the project is built with 1.99) and, for the Mac app
+bundle, Xcode.
 
 ```sh
-cargo build
-./target/debug/torrz open          # start the app (real engine, saves to ~/Downloads)
-./target/debug/torrz open --demo   # or a simulated swarm: nothing touches the network
+git clone https://github.com/imran-vz/torrz
+cd torrz
 ```
 
-Or build the Mac app, which has the icon and takes `magnet:` links:
+**As a Mac app** (has the icon and takes `magnet:` links):
 
 ```sh
-scripts/make-app.sh                # writes dist/Torrz.app (needs Xcode)
+scripts/make-app.sh
 cp -R dist/Torrz.app /Applications/
 ```
 
-Then drive it from the terminal while the window is open:
+The bundle contains the `torrz` command too, at `Torrz.app/Contents/MacOS/torrz`.
+
+**As plain binaries** on your `PATH`:
+
+```sh
+cargo install --path crates/torrz-app
+cargo install --path crates/torrz-cli
+```
+
+Install both: `torrz open` starts the `torrz-app` that sits beside it.
+
+The bundle is signed ad hoc, not notarised. If you copy it to another Mac, macOS will ask
+you to approve it the first time.
+
+## Quick start
+
+```sh
+torrz open                 # start the app (real engine, saves to ~/Downloads)
+torrz open --demo          # or a simulated swarm that downloads nothing
+```
+
+With the window open, drive it from another terminal:
 
 ```sh
 torrz add 'magnet:?xt=urn:btih:…' --category "Linux ISOs"
 torrz list
-torrz pause 1 2            # ids, info hashes, `all` or `selected`
-torrz files 1 --skip 3
+torrz pause 1 2                    # ids, info hashes, `all` or `selected`
+torrz files 1 --skip 3             # don't download file 3
 torrz limit --down 12M --up none
-torrz ui filter downloading
-torrz ui select 1
+torrz ui filter downloading        # what the sidebar does
+torrz ui select 1                  # what clicking a row does
 torrz ui tab peers
-torrz ui palette on --query "pause"
-torrz ui icon dark         # the app icon: auto (follows the system), light or dark
-torrz ui state             # everything the window shows, as JSON
-torrz --help
+torrz ui palette on --query pause
+torrz ui state                     # everything the window shows, as JSON
 ```
 
-In the window: ⌘K opens the command palette (⌘C there copies the highlighted row as its CLI
-line), ⌘O adds a torrent, Space pauses or resumes the selection, ⌫ removes it, ⌘F searches,
-⌘I toggles the inspector. The inspector's Log tab shows every click as the command it ran.
-
-## How it fits together
-
-| Crate | What it is |
-|---|---|
-| `crates/torrz-core` | The `Command` set, the CLI parser, the engine (librqbit, plus a demo engine), categories and limits, and the Unix socket the CLI talks over. |
-| `crates/torrz-app` | The window (`torrz-app`). Every control dispatches a `Command`; nothing changes state any other way. |
-| `crates/torrz-cli` | `torrz`: parses a line into a `Command`, sends it to the running app, prints the answer. |
-
-A test in `torrz-app` renders every screen headless and fails if any control lacks a command
-line the CLI accepts, so the two cannot drift apart.
+Every command takes `--json` for the raw answer and exits non-zero when it fails, so it
+scripts cleanly:
 
 ```sh
-cargo test                                             # core, CLI round-trips, headless UI
-./target/debug/torrz-app --snap shot.png --scene palette --settle   # render a screen to PNG
+torrz list --json | jq -r '.data[] | select(.state == "seeding") | .name'
 ```
 
-The icon is drawn by `scripts/make-icon.py classic`, in a light and a dark version. The
-bundle carries both, and macOS 26 and later switch between them with the system's appearance.
-While the app runs it shows the one you chose (⌘K, "App Icon", or `torrz ui icon`).
+The full list is in the [CLI reference](docs/cli.md), or `torrz --help`.
 
-State lives in `~/Library/Application Support/Torrz` on macOS (`$TORRZ_HOME` overrides it;
-`$TORRZ_SOCK` moves the socket). `design/mocks/index.html` has the original UI directions.
+## In the window
 
-## Not there yet
+![The command palette, each row beside its command line](design/screens/palette.png)
 
-- Windows: the command socket is Unix-only.
-- BitTorrent v2, and piece picking other than sequential (librqbit limits).
-- Column resizing, a tray icon, and opening `.torrent` files from Finder (dropping one on
-  the window works).
+| Key | Does |
+|---|---|
+| ⌘K | Open the command palette |
+| ⌘O or ⌘N | Add a torrent |
+| ⌘F | Search by name |
+| Space | Pause or resume the selection |
+| ⌫ | Remove the selection (asks first) |
+| ↑ ↓ | Move the selection; with ⇧, extend it |
+| ⌘A | Select every row shown |
+| ⌘1 … ⌘6 | Inspector tab: General, Files, Peers, Trackers, Pieces, Log |
+| ⌘I | Show or hide the inspector |
+| ⌥⌘S | Show or hide the sidebar |
+| ⌘, | Speed limits |
+| Esc | Close the palette or dialog, then clear the search, then the selection |
 
-Created in [T3 Code](https://t3.codes).
+Click a row to select it, ⌘-click to add or remove one, ⇧-click to select a range, and
+double-click to show its files in Finder. Drop a `.torrent` file on the window to add it.
+Closing the window leaves the torrents running; quit from the palette or with
+`torrz ui window quit`.
+
+The app icon has a light and a dark version. It follows the system by default; choose one
+from the palette ("App Icon") or with `torrz ui icon auto|light|dark`.
+
+## Documentation
+
+- [CLI reference](docs/cli.md): every command, with the JSON it returns.
+- [Architecture](docs/architecture.md): how a click and a command line become the same
+  thing, the threads, and the socket protocol.
+- [Development](docs/development.md): building, testing, headless screenshots, adding a
+  command, the icon and the bundle, and updating Rune.
+- [Contributing](CONTRIBUTING.md).
+
+## Where things are kept
+
+| What | Where |
+|---|---|
+| Downloads | `~/Downloads` |
+| Settings (limits, categories, icon) | `config.json` in the data folder |
+| Torrent list and resume data | `session/` in the data folder |
+| Command socket | `torrz.sock` in the data folder |
+
+The data folder is `~/Library/Application Support/Torrz` on macOS and
+`$XDG_DATA_HOME/torrz` (or `~/.local/share/torrz`) elsewhere. Set `TORRZ_HOME` to move it
+and `TORRZ_SOCK` to move only the socket. The demo keeps its settings in memory and never
+writes `config.json`.
+
+## What is missing
+
+- **Windows:** the app may build, but the command socket is Unix-only, so `torrz` cannot
+  reach it.
+- **BitTorrent v2**, and piece picking other than in order. Both are librqbit's limits.
+- **Settings:** the download folder (`~/Downloads`) and the listening port (51413) are
+  fixed. `torrz add --dir` saves one torrent elsewhere.
+- **In the window:** column resizing, a right-click menu on rows, a tray icon, and opening
+  a `.torrent` by double-clicking it in Finder.
+- **A forced light or dark icon** shows only while Torrz runs; when it is quit, macOS
+  draws the version that matches the system.
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+Created in [T3 Code](https://t3.codes).

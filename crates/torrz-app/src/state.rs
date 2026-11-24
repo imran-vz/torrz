@@ -240,6 +240,8 @@ impl IconStyle {
     }
 }
 
+// One dialog exists at a time, so the size its text fields give the enum costs nothing.
+#[allow(clippy::large_enum_variant)]
 pub enum Dialog {
     None,
     Add { source: TextEdit, paused: bool },
@@ -438,10 +440,11 @@ impl State {
         } else if matches!(cmd, Command::Add { .. } | Command::Remove { .. } | Command::Limit { .. } | Command::AltLimits { .. } | Command::Category { .. }) {
             self.say(&resp.message, true, tx);
         }
-        if let (Command::Reveal { .. }, Some(path)) = (cmd, resp.data.get("path").and_then(|p| p.as_str())) {
-            if resp.ok && tx.reveal_path(expand_home(path)).is_err() {
-                self.say("Couldn't show that in the file manager", false, tx);
-            }
+        if let (Command::Reveal { .. }, Some(path)) = (cmd, resp.data.get("path").and_then(|p| p.as_str()))
+            && resp.ok
+            && tx.reveal_path(expand_home(path)).is_err()
+        {
+            self.say("Couldn't show that in the file manager", false, tx);
         }
     }
 
