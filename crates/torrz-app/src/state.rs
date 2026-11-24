@@ -207,6 +207,39 @@ impl Tab {
     }
 }
 
+/// Which app icon to show.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IconStyle {
+    /// Follow the system's light or dark appearance.
+    Auto,
+    Light,
+    Dark,
+}
+
+impl IconStyle {
+    pub const ALL: [IconStyle; 3] = [IconStyle::Auto, IconStyle::Light, IconStyle::Dark];
+
+    pub fn id(self) -> &'static str {
+        match self {
+            IconStyle::Auto => "auto",
+            IconStyle::Light => "light",
+            IconStyle::Dark => "dark",
+        }
+    }
+
+    pub fn title(self) -> &'static str {
+        match self {
+            IconStyle::Auto => "Automatic",
+            IconStyle::Light => "Light",
+            IconStyle::Dark => "Dark",
+        }
+    }
+
+    pub fn parse(s: &str) -> Option<IconStyle> {
+        IconStyle::ALL.into_iter().find(|i| i.id().eq_ignore_ascii_case(s))
+    }
+}
+
 pub enum Dialog {
     None,
     Add { source: TextEdit, paused: bool },
@@ -280,6 +313,7 @@ pub struct State {
     pub session_history: VecDeque<(u64, u64)>,
     pub torrent_history: (u64, VecDeque<(u64, u64)>),
     pub demo: bool,
+    pub icon: IconStyle,
 }
 
 impl State {
@@ -306,7 +340,9 @@ impl State {
             session_history: VecDeque::new(),
             torrent_history: (0, VecDeque::new()),
             demo,
+            icon: IconStyle::Auto,
         };
+        s.icon = IconStyle::parse(&s.backend.app_icon()).unwrap_or(IconStyle::Auto);
         let snap = s.backend.snapshot(None);
         s.set_snapshot(snap);
         s
@@ -441,6 +477,7 @@ impl State {
             "toast": self.toast.as_ref().map(|t| t.text.clone()),
             "log": self.log.iter().rev().take(20).map(|l| json!({ "time": l.time, "from": if l.origin == Origin::Ui { "ui" } else { "cli" }, "command": l.cli, "result": l.result, "ok": l.ok })).collect::<Vec<_>>(),
             "demo": self.demo,
+            "icon": self.icon.id(),
         })
     }
 }
@@ -516,6 +553,10 @@ pub fn palette_items(s: &State, query: &str) -> Vec<PaletteItem> {
     }
     v.push(item(Icon::Sidebar, "View", format!("{} Sidebar", if s.sidebar_open { "Hide" } else { "Show" }), ui(Ui::Sidebar { open: Some(!s.sidebar_open) })));
     v.push(item(Icon::Panel, "View", format!("{} Inspector", if s.inspector_open { "Hide" } else { "Show" }), ui(Ui::Inspector { open: Some(!s.inspector_open) })));
+    for i in IconStyle::ALL {
+        let mark = if s.icon == i { " ✓" } else { "" };
+        v.push(item(Icon::Panel, "App Icon", format!("App Icon: {}{mark}", i.title()), ui(Ui::Icon { style: i.id().into() })));
+    }
     v.push(item(Icon::Power, "View", "Quit Torrz".into(), ui(Ui::Window { action: "quit".into() })));
     for t in &s.snap.torrents {
         v.push(item(
@@ -765,6 +806,11 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
                 _ => anyhow::bail!("no window action {action:?}: show, hide, minimize or quit"),
             }
             Response::ok(format!("window: {action}"))
+        }
+        Ui::Icon { style } => {
+            s.icon = IconStyle::parse(&style).ok_or_else(|| anyhow::anyhow!("no icon style {style:?}: auto, light or dark"))?;
+            s.backend.set_app_icon(s.icon.id());
+            Response::ok(format!("app icon: {}", s.icon.id()))
         }
     })
 }

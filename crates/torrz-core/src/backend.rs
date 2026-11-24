@@ -21,6 +21,8 @@ pub struct Config {
     pub alt_on: bool,
     /// Info hash to category.
     pub categories: HashMap<String, String>,
+    /// The app icon the user chose: `auto`, `light` or `dark` (empty means `auto`).
+    pub app_icon: String,
 }
 
 impl Config {
@@ -104,6 +106,17 @@ impl Backend {
     fn apply_limits(&self) {
         let c = self.cfg().clone();
         if c.alt_on { self.engine.set_limits(c.alt_down, c.alt_up) } else { self.engine.set_limits(c.limit_down, c.limit_up) }
+    }
+
+    /// The app icon the user chose: `auto`, `light` or `dark`.
+    pub fn app_icon(&self) -> String {
+        let c = self.cfg();
+        if c.app_icon.is_empty() { "auto".into() } else { c.app_icon.clone() }
+    }
+
+    pub fn set_app_icon(&self, style: &str) {
+        self.cfg().app_icon = style.to_owned();
+        self.save();
     }
 
     pub fn snapshot(&self, detail: Option<u64>) -> Snapshot {

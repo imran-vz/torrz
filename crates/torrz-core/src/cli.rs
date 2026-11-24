@@ -164,6 +164,8 @@ pub enum UiSub {
     Inspector(Toggle),
     /// show, hide, minimize or quit.
     Window { action: String },
+    /// The app's icon: auto (follows the system), light or dark.
+    Icon { style: String },
 }
 
 /// What a command line asks for.
@@ -206,6 +208,7 @@ impl Sub {
                 UiSub::Sidebar(t) => Ui::Sidebar { open: OnOff::get(t.state) },
                 UiSub::Inspector(t) => Ui::Inspector { open: OnOff::get(t.state) },
                 UiSub::Window { action } => Ui::Window { action },
+                UiSub::Icon { style } => Ui::Icon { style },
             }),
         })
     }
@@ -301,6 +304,7 @@ mod tests {
             Ui::Sidebar { open: Some(false) },
             Ui::Inspector { open: None },
             Ui::Window { action: "hide".into() },
+            Ui::Icon { style: "dark".into() },
         ] {
             round_trip(Command::Ui(u));
         }

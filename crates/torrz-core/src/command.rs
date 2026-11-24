@@ -96,6 +96,8 @@ pub enum Ui {
     },
     /// `show`, `hide`, `minimize` or `quit`.
     Window { action: String },
+    /// The app's icon: `auto` (follows the system's light or dark appearance), `light` or `dark`.
+    Icon { style: String },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -238,6 +240,7 @@ impl Ui {
             Ui::Sidebar { open } => format!("sidebar{}", on_off(*open)),
             Ui::Inspector { open } => format!("inspector{}", on_off(*open)),
             Ui::Window { action } => format!("window {}", quote(action)),
+            Ui::Icon { style } => format!("icon {}", quote(style)),
         }
     }
 }

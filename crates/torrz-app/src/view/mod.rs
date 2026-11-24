@@ -92,6 +92,7 @@ fn status_bar(s: &State) -> El {
 
 pub fn view(s: &State, cx: &mut Cx<State>) -> El {
     cx.caption_color(t::WHITE);
+    crate::icon::sync(s.icon, cx.system_dark());
     let insets = cx.chrome_insets();
     let mut main = col().key("main").grow(1.0).min_w(0.0).h_full().child(table::toolbar(s, if s.sidebar_open { 0.0 } else { insets.leading })).child(table::table(s));
     if s.inspector_open {

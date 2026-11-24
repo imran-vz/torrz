@@ -13,6 +13,13 @@ cargo build
 ./target/debug/torrz open --demo   # or a simulated swarm: nothing touches the network
 ```
 
+Or build the Mac app, which has the icon and takes `magnet:` links:
+
+```sh
+scripts/make-app.sh                # writes dist/Torrz.app (needs Xcode)
+cp -R dist/Torrz.app /Applications/
+```
+
 Then drive it from the terminal while the window is open:
 
 ```sh
@@ -25,6 +32,7 @@ torrz ui filter downloading
 torrz ui select 1
 torrz ui tab peers
 torrz ui palette on --query "pause"
+torrz ui icon dark         # the app icon: auto (follows the system), light or dark
 torrz ui state             # everything the window shows, as JSON
 torrz --help
 ```
@@ -49,6 +57,10 @@ cargo test                                             # core, CLI round-trips, 
 ./target/debug/torrz-app --snap shot.png --scene palette --settle   # render a screen to PNG
 ```
 
+The icon is drawn by `scripts/make-icon.py classic`, in a light and a dark version. The
+bundle carries both, and macOS 26 and later switch between them with the system's appearance.
+While the app runs it shows the one you chose (⌘K, "App Icon", or `torrz ui icon`).
+
 State lives in `~/Library/Application Support/Torrz` on macOS (`$TORRZ_HOME` overrides it;
 `$TORRZ_SOCK` moves the socket). `design/mocks/index.html` has the original UI directions.
 
@@ -56,6 +68,7 @@ State lives in `~/Library/Application Support/Torrz` on macOS (`$TORRZ_HOME` ove
 
 - Windows: the command socket is Unix-only.
 - BitTorrent v2, and piece picking other than sequential (librqbit limits).
-- Column resizing, a tray icon, an app bundle with `magnet:` and `.torrent` registration.
+- Column resizing, a tray icon, and opening `.torrent` files from Finder (dropping one on
+  the window works).
 
 Created in [T3 Code](https://t3.codes).

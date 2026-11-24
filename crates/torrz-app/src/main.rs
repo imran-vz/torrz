@@ -1,6 +1,7 @@
 //! Torrz, the window. `torrz-app` opens it on the real engine; `--demo` uses a simulated swarm.
 //! The `torrz` command line reaches it over the socket set up here.
 
+mod icon;
 mod state;
 mod theme;
 mod view;
