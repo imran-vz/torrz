@@ -1,0 +1,37 @@
+[workspace]
+resolver = "3"
+members = ["crates/torrz-core", "crates/torrz-app", "crates/torrz-cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+torrz-core = { path = "crates/torrz-core" }
+# Rune is pre-release: pin one rev of its dev branch, here and in every [patch.crates-io] entry.
+rune = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+librqbit = "9.1.0"
+
+# Cargo does not inherit a dependency's patches; these mirror Rune's own table at the same rev.
+[patch.crates-io]
+winit = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+sctk-adwaita = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+parley_engine = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+wgpu-hal = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+naga = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+accesskit_windows = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+accesskit_macos = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+accesskit_atspi_common = { git = "https://github.com/anomalyco/rune", rev = "c7896b0f80054c22f44e42c0cdb0d3f1681ac924" }
+
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+opt-level = 1

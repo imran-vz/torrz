@@ -1,0 +1,16 @@
+[package]
+name = "torrz-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "torrz"
+path = "src/main.rs"
+
+[dependencies]
+torrz-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+clap.workspace = true
