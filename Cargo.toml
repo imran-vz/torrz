@@ -6,6 +6,14 @@ members = ["crates/torrz-core", "crates/torrz-app", "crates/torrz-cli"]
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
+authors = ["Imran"]
+repository = "https://github.com/imran-vz/torrz"
+homepage = "https://torrz.imran.codes"
+readme = "README.md"
+keywords = ["bittorrent", "torrent", "cli", "desktop", "magnet"]
+categories = ["network-programming", "command-line-utilities", "gui"]
+# Rune comes from git, which crates.io doesn't allow: the crates are built from this repo.
+publish = false
 
 [workspace.dependencies]
 torrz-core = { path = "crates/torrz-core" }

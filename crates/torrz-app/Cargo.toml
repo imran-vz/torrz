@@ -3,6 +3,14 @@ name = "torrz-app"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "The Torrz window: a desktop BitTorrent client whose every control is also a command."
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
 
 [dependencies]
 torrz-core.workspace = true

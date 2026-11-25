@@ -3,6 +3,14 @@ name = "torrz-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "The Torrz command set, engines (librqbit and a demo swarm) and the socket between the window and the CLI."
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
 
 [dependencies]
 serde.workspace = true

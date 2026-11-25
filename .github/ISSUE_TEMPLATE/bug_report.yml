@@ -1,0 +1,36 @@
+name: Bug report
+description: Something in Torrz doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Commands that ran
+      description: |
+        The relevant lines from the inspector's Log tab, or the output of `torrz ui state --json`.
+        The log records every command as a `torrz` line, which is usually enough to reproduce it.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Torrz version or commit
+      placeholder: e.g. 0.1.0, or the commit you built
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. macOS 26.1 on Apple silicon
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: Please don't attach `.torrent` files or magnet links for copyrighted material.

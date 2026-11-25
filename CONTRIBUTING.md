@@ -19,7 +19,10 @@ Thanks for looking. Torrz is small and early, and issues and pull requests are b
    window, that is a headless test in `crates/torrz-app/src/tests.rs`.
 4. If you changed how something looks, attach a screenshot. `torrz-app --snap` makes one
    without opening a window ([how](docs/development.md#see-the-window-without-opening-it)).
-5. Update `docs/cli.md` when a command's arguments or output change.
+5. Update `docs/cli.md` when a command's arguments or output change, and add a line to
+   `CHANGELOG.md` under Unreleased.
+6. If you changed anything in `docs/`, rebuild the website so it matches:
+   `cd site && npm install && npm run build`, and commit `site/public`.
 
 ## Reporting a bug
 

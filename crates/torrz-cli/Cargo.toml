@@ -3,6 +3,14 @@ name = "torrz-cli"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "`torrz`: drive the Torrz BitTorrent client from the terminal."
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "../../README.md"
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
 
 [[bin]]
 name = "torrz"

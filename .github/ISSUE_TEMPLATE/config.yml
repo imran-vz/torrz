@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://torrz.imran.codes/docs/
+    about: The CLI reference, the architecture and the development guide.
+  - name: Report a security problem
+    url: https://github.com/imran-vz/torrz/security/advisories/new
+    about: Please report vulnerabilities privately, not as an issue.
