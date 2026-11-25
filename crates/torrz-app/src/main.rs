@@ -1,6 +1,7 @@
 //! Torrz, the window. `torrz-app` opens it on the real engine; `--demo` uses a simulated swarm.
 //! The `torrz` command line reaches it over the socket set up here.
 
+mod handler;
 mod icon;
 mod state;
 mod theme;
@@ -9,7 +10,7 @@ mod view;
 #[cfg(test)]
 mod tests;
 
-use std::sync::{Arc, mpsc};
+use std::sync::{Arc, OnceLock, mpsc};
 use std::time::Duration;
 
 use rune::{App, AppHandle, AppSpec, Titlebar};
@@ -19,6 +20,13 @@ use torrz_core::engine::rqbit::{RqbitEngine, RqbitOptions};
 use torrz_core::{Backend, Command, Response, Ui, backend, ipc};
 
 use state::{Exec, Job, Origin, Shared, State, dispatch};
+
+/// The running window's handle, for answers that arrive from outside a handler (macOS
+/// confirming the magnet-link handler). Unset in headless runs and tests.
+pub static HANDLE: OnceLock<AppHandle<State>> = OnceLock::new();
+
+/// How often the watched folder is looked at.
+const WATCH_EVERY: Duration = Duration::from_secs(2);
 
 pub fn spec() -> AppSpec<State> {
     AppSpec {
@@ -32,10 +40,15 @@ pub fn spec() -> AppSpec<State> {
                 scene_select(s);
                 s.palette = Some(state::Palette { query: rune::TextEdit::new("pause"), index: 0 });
             }),
-            ("add", |s| s.dialog = state::Dialog::Add { source: rune::TextEdit::new(""), paused: false }),
+            ("add", |s| s.dialog = state::Dialog::Add { source: rune::TextEdit::new(""), paused: false, trash: false }),
+            ("watch", |s| s.dialog = state::Dialog::Watch { dir: rune::TextEdit::new("~/Downloads"), trash: true }),
             ("files", |s| {
                 scene_select(s);
                 s.tab = state::Tab::Files;
+            }),
+            ("trackers", |s| {
+                scene_select(s);
+                s.tab = state::Tab::Trackers;
             }),
             ("pieces", |s| {
                 scene_select(s);
@@ -85,7 +98,7 @@ fn main() {
     } else if demo {
         Arc::new(DemoEngine::new())
     } else {
-        match RqbitEngine::start(RqbitOptions { download_dir: backend::default_download_dir(), state_dir: dir.clone(), listen_port: 51413 }) {
+        match RqbitEngine::start(RqbitOptions { download_dir: backend::default_download_dir(), state_dir: dir.clone(), listen_port: 51413, dht: true }) {
             Ok(e) => Arc::new(e),
             Err(e) => {
                 eprintln!("torrz: {e:#}");
@@ -118,13 +131,21 @@ fn main() {
         .args(rune_args)
         // Closing the window keeps the torrents running; Quit ends them.
         .keep_running()
+        // A magnet link opened from a browser or Finder: the add dialog, filled in, in front.
         .on_open_url(|s: &mut State, url: &str, tx| {
-            if url.starts_with("magnet:") {
-                dispatch(s, Command::Ui(Ui::Dialog { name: "add".into() }), Origin::Ui, tx);
-                dispatch(s, Command::Ui(Ui::Field { name: "source".into(), value: url.to_owned() }), Origin::Ui, tx);
+            let url = url.trim();
+            if !url.get(..7).is_some_and(|p| p.eq_ignore_ascii_case("magnet:")) {
+                return;
             }
+            // Closing the window keeps Torrz running, so the window may need bringing back.
+            if let Some(h) = HANDLE.get() {
+                h.open();
+            }
+            dispatch(s, Command::Ui(Ui::Dialog { name: "add".into() }), Origin::Ui, tx);
+            dispatch(s, Command::Ui(Ui::Field { name: "source".into(), value: url.to_owned() }), Origin::Ui, tx);
         });
     let handle = app.handle();
+    let _ = HANDLE.set(handle.clone());
 
     // The engine thread: commands from clicks, and a snapshot every second.
     {
@@ -143,6 +164,25 @@ fn main() {
                 }
             })
             .expect("spawn the engine thread");
+    }
+
+    // The watched folder: each .torrent file that arrives is added as `torrz add` would add it.
+    {
+        let (backend, shared, handle) = (backend.clone(), shared.clone(), handle.clone());
+        std::thread::Builder::new()
+            .name("torrz-watch".into())
+            .spawn(move || {
+                loop {
+                    std::thread::sleep(WATCH_EVERY);
+                    let (files, trash) = backend.take_watched();
+                    for f in files {
+                        let cmd = Command::Add { source: f.display().to_string(), paused: false, dir: None, category: None, trash };
+                        let selected = shared.selected.lock().unwrap_or_else(|e| e.into_inner()).clone();
+                        run_engine(&backend, &shared, &handle, cmd, selected, Origin::Watch);
+                    }
+                }
+            })
+            .expect("spawn the watch thread");
     }
 
     // The socket: window commands run on the UI thread and answer back; engine commands run here.

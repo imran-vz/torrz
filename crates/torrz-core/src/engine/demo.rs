@@ -59,6 +59,7 @@ fn sim(id: u64, name: &str, size: u64, pct: u64, state: TorrentState, down: u64,
             save_path: "~/Downloads".into(),
             category: Some(cat.into()),
             trackers: if tracker.is_empty() { Vec::new() } else { vec![tracker.into()] },
+            private: false,
         },
         rate_down: down,
         rate_up: up,
@@ -206,11 +207,12 @@ impl Engine for DemoEngine {
             alt_limits: false,
             free_disk: Some(812 * GB),
             download_dir: "~/Downloads".into(),
+            ..Default::default()
         };
         Snapshot { torrents, session, detail }
     }
 
-    fn add(&self, source: &str, paused: bool, dir: Option<&str>) -> anyhow::Result<u64> {
+    fn add(&self, source: &str, paused: bool, dir: Option<&str>, trackers: &[String]) -> anyhow::Result<u64> {
         anyhow::ensure!(!source.trim().is_empty(), "nothing to add");
         let mut g = self.lock();
         let id = g.next_id;
@@ -225,8 +227,26 @@ impl Engine for DemoEngine {
         if let Some(d) = dir {
             s.t.save_path = d.into();
         }
+        s.t.trackers.extend(trackers.iter().filter_map(|u| crate::trackers::host(u)));
         g.sims.push(s);
         Ok(id)
+    }
+
+    fn add_trackers(&self, id: u64, trackers: &[String]) -> anyhow::Result<(u64, usize)> {
+        let mut g = self.lock();
+        let s = g.find(id)?;
+        anyhow::ensure!(!s.t.private, "#{id} is a private torrent");
+        let before = s.t.trackers.len();
+        for h in trackers.iter().filter_map(|u| crate::trackers::host(u)) {
+            if !s.t.trackers.contains(&h) {
+                s.t.trackers.push(h);
+            }
+        }
+        Ok((id, s.t.trackers.len() - before))
+    }
+
+    fn offline(&self) -> bool {
+        true
     }
 
     fn pause(&self, id: u64) -> anyhow::Result<()> {

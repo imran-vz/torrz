@@ -11,3 +11,10 @@ libc = "0.2"
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
+
+# Asking macOS to open magnet links with Torrz. The versions match the ones Rune already uses.
+[target.'cfg(target_os = "macos")'.dependencies]
+block2 = "0.6"
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSBundle", "NSError", "NSString", "NSURL"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "block2", "NSWorkspace"] }

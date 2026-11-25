@@ -17,6 +17,8 @@ pub struct RqbitEngine {
     rt: tokio::runtime::Runtime,
     api: Api,
     download_dir: PathBuf,
+    /// Where librqbit keeps each torrent's `.torrent` and resume bitfield.
+    session_dir: PathBuf,
 }
 
 pub struct RqbitOptions {
@@ -24,6 +26,8 @@ pub struct RqbitOptions {
     /// Where the session keeps its torrent list and resume data.
     pub state_dir: PathBuf,
     pub listen_port: u16,
+    /// Join the DHT. Off only for tests, which would clash with a running Torrz over its port.
+    pub dht: bool,
 }
 
 impl RqbitEngine {
@@ -31,9 +35,10 @@ impl RqbitEngine {
         let rt = tokio::runtime::Builder::new_multi_thread().enable_all().thread_name("torrz-engine").build()?;
         std::fs::create_dir_all(&o.download_dir).with_context(|| format!("cannot create {}", o.download_dir.display()))?;
         std::fs::create_dir_all(&o.state_dir)?;
+        let session_dir = o.state_dir.join("session");
         let opts = SessionOptions {
             fastresume: true,
-            persistence: Some(SessionPersistenceConfig::Json { folder: Some(o.state_dir.join("session")) }),
+            persistence: Some(SessionPersistenceConfig::Json { folder: Some(session_dir.clone()) }),
             listen: Some(ListenerOptions {
                 mode: ListenerMode::TcpAndUtp,
                 listen_addr: (std::net::Ipv6Addr::UNSPECIFIED, o.listen_port).into(),
@@ -41,10 +46,12 @@ impl RqbitEngine {
                 ..Default::default()
             }),
             client_name_and_version: Some(format!("Torrz {}", env!("CARGO_PKG_VERSION"))),
+            dht: if o.dht { SessionOptions::default().dht } else { None },
+            disable_local_service_discovery: !o.dht,
             ..Default::default()
         };
         let session: Arc<Session> = rt.block_on(Session::new_with_opts(o.download_dir.clone(), opts)).context("cannot start the torrent session")?;
-        Ok(Self { rt, api: Api::new(session, None), download_dir: o.download_dir })
+        Ok(Self { rt, api: Api::new(session, None), download_dir: o.download_dir, session_dir })
     }
 
     fn id(id: u64) -> TorrentIdOrHash {
@@ -80,8 +87,9 @@ impl Engine for RqbitEngine {
                 TorrentStatsState::Live => TorrentState::Downloading,
             };
             let left = stats.total_bytes.saturating_sub(stats.progress_bytes);
-            let trackers = session
-                .get(Self::id(id as u64))
+            let handle = session.get(Self::id(id as u64));
+            let trackers = handle
+                .as_ref()
                 .map(|h| {
                     let mut v: Vec<String> = h.shared().trackers.iter().filter_map(|u| u.host_str().map(str::to_owned)).collect();
                     v.sort();
@@ -89,6 +97,7 @@ impl Engine for RqbitEngine {
                     v
                 })
                 .unwrap_or_default();
+            let private = handle.as_ref().and_then(|h| h.with_metadata(|m| m.info.info().private).ok()).unwrap_or(false);
             torrents.push(Torrent {
                 id: id as u64,
                 name: t.name.unwrap_or_else(|| format!("{}…", &t.info_hash[..12.min(t.info_hash.len())])),
@@ -107,6 +116,7 @@ impl Engine for RqbitEngine {
                 save_path: t.output_folder,
                 category: None,
                 trackers,
+                private,
             });
         }
         torrents.sort_by_key(|t| t.id);
@@ -123,6 +133,7 @@ impl Engine for RqbitEngine {
             alt_limits: false,
             free_disk: None,
             download_dir: self.download_dir.display().to_string(),
+            ..Default::default()
         };
 
         let detail = detail.and_then(|id| {
@@ -158,13 +169,73 @@ impl Engine for RqbitEngine {
         Snapshot { torrents, session: stats, detail }
     }
 
-    fn add(&self, source: &str, paused: bool, dir: Option<&str>) -> anyhow::Result<u64> {
+    fn add(&self, source: &str, paused: bool, dir: Option<&str>, trackers: &[String]) -> anyhow::Result<u64> {
         let source = source.trim();
         anyhow::ensure!(!source.is_empty(), "nothing to add: give a magnet link, a URL or a .torrent file");
-        let opts = AddTorrentOptions { paused, overwrite: true, output_folder: dir.map(str::to_owned), ..Default::default() };
-        let add = AddTorrent::from_cli_argument(source)?;
+        let mut opts = AddTorrentOptions { paused, overwrite: true, output_folder: dir.map(str::to_owned), ..Default::default() };
+        let add = match AddTorrent::from_cli_argument(source)? {
+            // librqbit reads a magnet's trackers from the link alone. A private torrent rarely
+            // comes as a magnet; one whose tracker carries a passkey is left as it is.
+            AddTorrent::Url(m) if m.starts_with("magnet:") && !trackers.is_empty() && !magnet_tracker_urls(&m).iter().any(|t| crate::trackers::looks_private(t)) => {
+                AddTorrent::Url(crate::trackers::magnet_with_trackers(&m, trackers).into())
+            }
+            AddTorrent::TorrentFileBytes(bytes) => {
+                let private = librqbit::torrent_from_bytes(&bytes).map(|t| t.info.data.private).unwrap_or(true);
+                if !private && !trackers.is_empty() {
+                    opts.trackers = Some(trackers.to_vec());
+                }
+                AddTorrent::TorrentFileBytes(bytes)
+            }
+            // An http(s) URL is downloaded by librqbit, so whether it is private isn't known
+            // here: it keeps its own trackers.
+            other => other,
+        };
         let r = self.rt.block_on(self.api.api_add_torrent(add, Some(opts))).map_err(err)?;
         r.id.map(|i| i as u64).context("the torrent was listed but not added")
+    }
+
+    fn add_trackers(&self, id: u64, extra: &[String]) -> anyhow::Result<(u64, usize)> {
+        let _g = self.rt.enter();
+        let h = self.api.session().get(Self::id(id)).with_context(|| format!("no torrent {id}"))?;
+        let private = h.with_metadata(|m| m.info.info().private).map_err(|_| anyhow::anyhow!("#{id} has no metadata yet; try again once it starts downloading"))?;
+        anyhow::ensure!(!private, "#{id} is a private torrent: it may only use its own tracker");
+        let mut have: Vec<String> = h.shared().trackers.iter().map(|u| u.to_string()).collect();
+        let hosts: Vec<String> = have.iter().filter_map(|u| crate::trackers::host(u)).collect();
+        let new: Vec<String> = extra.iter().filter(|u| crate::trackers::host(u).is_some_and(|x| !hosts.contains(&x))).cloned().collect();
+        if new.is_empty() {
+            return Ok((id, 0));
+        }
+        // librqbit fixes a torrent's trackers when it starts, so it is added again with more.
+        // Its resume bitfield is kept across, so it comes back after a spot check of its pieces
+        // instead of hashing every byte again.
+        let bytes = h.with_metadata(|m| m.torrent_bytes.clone()).map_err(|e| anyhow::anyhow!("{e:#}"))?;
+        let opts = |trackers: Option<Vec<String>>| AddTorrentOptions {
+            paused: h.is_paused(),
+            only_files: h.only_files(),
+            output_folder: Some(h.output_folder().display().to_string()),
+            overwrite: true,
+            trackers,
+            ..Default::default()
+        };
+        let (with, without) = (opts(Some(have.iter().chain(&new).cloned().collect())), opts(Some(std::mem::take(&mut have))));
+        let bitv = self.session_dir.join(format!("{:?}.bitv", h.info_hash()));
+        let kept = bitv.with_extension("bitv.keep");
+        let saved = std::fs::copy(&bitv, &kept).is_ok();
+        drop(h);
+        self.rt.block_on(self.api.api_torrent_action_forget(Self::id(id))).map_err(err)?;
+        if saved {
+            let _ = std::fs::rename(&kept, &bitv);
+        }
+        let add = |o| self.rt.block_on(self.api.api_add_torrent(AddTorrent::TorrentFileBytes(bytes.clone()), Some(o)));
+        let r = match add(with) {
+            Ok(r) => r,
+            // Never leave it gone: put it back as it was.
+            Err(e) => {
+                let back = add(without).map_err(err).context("and it couldn't be added back; add its .torrent again")?;
+                anyhow::bail!("couldn't add the trackers to #{id} ({e:#}); it is back as #{}", back.id.unwrap_or_default());
+            }
+        };
+        Ok((r.id.map(|i| i as u64).context("the torrent was listed but not added")?, new.len()))
     }
 
     fn pause(&self, id: u64) -> anyhow::Result<()> {
@@ -192,5 +263,69 @@ impl Engine for RqbitEngine {
         let l = &self.api.session().ratelimits;
         l.set_download_bps(nz(down));
         l.set_upload_bps(nz(up));
+    }
+}
+
+/// The `tr` parameters of a magnet link.
+fn magnet_tracker_urls(magnet: &str) -> Vec<String> {
+    let query = magnet.split_once('?').map(|(_, q)| q).unwrap_or("");
+    url::form_urlencoded::parse(query.as_bytes()).filter(|(k, _)| k == "tr").map(|(_, v)| v.into_owned()).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{Duration, Instant};
+
+    fn wait_complete(e: &RqbitEngine, id: u64) -> Torrent {
+        let start = Instant::now();
+        loop {
+            if let Some(t) = e.snapshot(None).torrents.into_iter().find(|t| t.id == id)
+                && t.finished()
+                && t.state != TorrentState::Checking
+            {
+                return t;
+            }
+            assert!(start.elapsed() < Duration::from_secs(60), "#{id} never finished checking");
+            std::thread::sleep(Duration::from_millis(100));
+        }
+    }
+
+    /// A real librqbit session on a torrent made here (it binds ports and joins the DHT):
+    /// `cargo test -p torrz-core trackers_are_added -- --ignored`.
+    #[test]
+    #[ignore]
+    fn trackers_are_added_by_adding_it_again_with_its_files_and_resume_data() {
+        let root = std::env::temp_dir().join(format!("torrz-rqbit-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let data = root.join("dl");
+        std::fs::create_dir_all(&data).unwrap();
+        let file = data.join("payload.bin");
+        std::fs::write(&file, (0..8u32 << 20).map(|i| i.wrapping_mul(2654435761) as u8).collect::<Vec<u8>>()).unwrap();
+        let e = RqbitEngine::start(RqbitOptions { download_dir: data.clone(), state_dir: root.join("state"), listen_port: 0, dht: false }).unwrap();
+        let made = e
+            .rt
+            .block_on(async {
+                let spawner = librqbit::spawn_utils::BlockingSpawner::new(4);
+                librqbit::create_torrent(&file, librqbit::CreateTorrentOptions { name: None, trackers: vec!["udp://one.example:6969/announce".into()], piece_length: Some(256 << 10) }, &spawner).await
+            })
+            .unwrap();
+        let tf = root.join("payload.torrent");
+        std::fs::write(&tf, made.as_bytes().unwrap()).unwrap();
+
+        let id = e.add(tf.to_str().unwrap(), false, Some(data.to_str().unwrap()), &[]).unwrap();
+        let before = wait_complete(&e, id);
+        assert_eq!(before.trackers, ["one.example"]);
+        assert!(!before.private);
+        let bitv = e.session_dir.join(format!("{}.bitv", before.hash));
+        assert!(bitv.exists(), "librqbit keeps resume data at {}", bitv.display());
+
+        let (now, added) = e.add_trackers(id, &["udp://two.example:1337/announce".into(), "udp://one.example:6969/announce".into()]).unwrap();
+        assert_eq!(added, 1, "only the tracker it lacked");
+        let after = wait_complete(&e, now);
+        assert_eq!((after.hash.as_str(), after.done, after.trackers.clone()), (before.hash.as_str(), before.size, vec!["one.example".to_owned(), "two.example".to_owned()]));
+        assert!(bitv.exists(), "its resume data is still there");
+        assert_eq!(e.add_trackers(now, &["udp://two.example:1337/announce".into()]).unwrap(), (now, 0), "nothing new: left alone");
+        let _ = std::fs::remove_dir_all(&root);
     }
 }

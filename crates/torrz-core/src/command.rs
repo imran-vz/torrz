@@ -21,6 +21,9 @@ pub enum Command {
         dir: Option<String>,
         #[serde(default)]
         category: Option<String>,
+        /// Move the .torrent file to the Trash once it is added.
+        #[serde(default)]
+        trash: bool,
     },
     Pause { targets: Vec<Target> },
     Resume { targets: Vec<Target> },
@@ -54,6 +57,36 @@ pub enum Command {
         name: Option<String>,
     },
     Reveal { target: Target },
+    /// The folder watched for new .torrent files. With nothing set, it reports the current one.
+    Watch {
+        /// Start watching this folder (replacing the one watched).
+        #[serde(default)]
+        dir: Option<String>,
+        /// Stop watching.
+        #[serde(default)]
+        off: bool,
+        /// Whether a .torrent file goes to the Trash once it is added.
+        #[serde(default)]
+        trash: Option<bool>,
+    },
+    /// The best public trackers (newTrackon's stable list, probed from here), fastest first.
+    /// `refresh` probes again instead of using the list from the last few hours.
+    BestTrackers {
+        #[serde(default)]
+        refresh: bool,
+    },
+    /// Gives torrents more trackers: `urls`, or the best public ones when it is empty. Private
+    /// torrents are skipped.
+    AddTrackers {
+        targets: Vec<Target>,
+        #[serde(default)]
+        urls: Vec<String>,
+    },
+    /// Whether new torrents get the best public trackers as they are added. `None` toggles.
+    AutoTrackers {
+        #[serde(default)]
+        on: Option<bool>,
+    },
     Ui(Ui),
 }
 
@@ -80,9 +113,10 @@ pub enum Ui {
     },
     PaletteMove { delta: i32 },
     PaletteRun,
-    /// `add`, `remove`, `limits` or `none`.
+    /// `add`, `remove`, `limits`, `watch` or `none`.
     Dialog { name: String },
-    /// Sets a field of the open dialog: `source`, `paused`, `delete-files`, `down`, `up`.
+    /// Sets a field of the open dialog: `source`, `paused`, `trash`, `delete-files`, `down`,
+    /// `up`, `dir`.
     Field { name: String, value: String },
     Confirm,
     Cancel,
@@ -98,6 +132,10 @@ pub enum Ui {
     Window { action: String },
     /// The app's icon: `auto` (follows the system's light or dark appearance), `light` or `dark`.
     Icon { style: String },
+    /// Asks the system to open magnet links with Torrz (macOS asks the user to confirm).
+    DefaultApp,
+    /// Copies a torrent's `name`, `hash` or `magnet` link to the clipboard.
+    Copy { what: String, target: Target },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -151,7 +189,7 @@ impl Command {
             Command::List => "list".into(),
             Command::Show { target } => format!("show {}", quote(target)),
             Command::Stats => "stats".into(),
-            Command::Add { source, paused, dir, category } => {
+            Command::Add { source, paused, dir, category, trash } => {
                 let mut s = format!("add {}", quote(source));
                 if *paused {
                     s += " --paused";
@@ -161,6 +199,9 @@ impl Command {
                 }
                 if let Some(c) = category {
                     s += &format!(" --category {}", quote(c));
+                }
+                if *trash {
+                    s += " --trash";
                 }
                 s
             }
@@ -196,6 +237,28 @@ impl Command {
                 None => format!("category {} --clear", join(targets)),
             },
             Command::Reveal { target } => format!("reveal {}", quote(target)),
+            Command::Watch { dir, off, trash } => {
+                let mut s = String::from("watch");
+                if let Some(d) = dir {
+                    s += &format!(" {}", quote(d));
+                }
+                if *off {
+                    s += " --off";
+                }
+                if let Some(t) = trash {
+                    s += &format!(" --trash{}", on_off(Some(*t)));
+                }
+                s
+            }
+            Command::BestTrackers { refresh } => format!("trackers best{}", if *refresh { " --refresh" } else { "" }),
+            Command::AddTrackers { targets, urls } => {
+                let mut s = format!("trackers add {}", join(targets));
+                for u in urls {
+                    s += &format!(" --url {}", quote(u));
+                }
+                s
+            }
+            Command::AutoTrackers { on } => format!("trackers auto{}", on_off(*on)),
             Command::Ui(ui) => format!("ui {}", ui.to_cli()),
         };
         format!("torrz {body}")
@@ -203,7 +266,7 @@ impl Command {
 
     /// Whether running it changes nothing (so it is kept out of the command log).
     pub fn is_query(&self) -> bool {
-        matches!(self, Command::List | Command::Show { .. } | Command::Stats | Command::Ui(Ui::State))
+        matches!(self, Command::List | Command::Show { .. } | Command::Stats | Command::Watch { dir: None, off: false, trash: None } | Command::BestTrackers { refresh: false } | Command::Ui(Ui::State))
     }
 }
 
@@ -241,6 +304,8 @@ impl Ui {
             Ui::Inspector { open } => format!("inspector{}", on_off(*open)),
             Ui::Window { action } => format!("window {}", quote(action)),
             Ui::Icon { style } => format!("icon {}", quote(style)),
+            Ui::DefaultApp => "default-app".into(),
+            Ui::Copy { what, target } => format!("copy {} {}", quote(what), quote(target)),
         }
     }
 }
@@ -251,10 +316,12 @@ mod tests {
 
     #[test]
     fn commands_render_as_shell_lines() {
-        let c = Command::Add { source: "magnet:?xt=urn:btih:abc&dn=a b".into(), paused: true, dir: None, category: Some("linux".into()) };
+        let c = Command::Add { source: "magnet:?xt=urn:btih:abc&dn=a b".into(), paused: true, dir: None, category: Some("linux".into()), trash: false };
         assert_eq!(c.to_cli(), "torrz add 'magnet:?xt=urn:btih:abc&dn=a b' --paused --category linux");
         assert_eq!(Command::Pause { targets: vec!["selected".into()] }.to_cli(), "torrz pause selected");
         assert_eq!(Command::Ui(Ui::Sort { column: "size".into(), desc: Some(true) }).to_cli(), "torrz ui sort size --desc");
+        assert_eq!(Command::Watch { dir: Some("/tmp/in".into()), off: false, trash: Some(true) }.to_cli(), "torrz watch /tmp/in --trash on");
+        assert!(Command::Watch { dir: None, off: false, trash: None }.is_query());
     }
 
     #[test]

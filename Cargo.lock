@@ -5691,7 +5691,11 @@ name = "torrz-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "block2 0.6.2",
  "libc",
+ "objc2 0.6.5",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
  "rune",
  "serde",
  "serde_json",
@@ -5717,9 +5721,12 @@ dependencies = [
  "clap",
  "libc",
  "librqbit",
+ "reqwest",
  "serde",
  "serde_json",
  "tokio",
+ "trash",
+ "url",
 ]
 
 [[package]]
@@ -5796,6 +5803,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "trash"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7363f9516b65bd2e855f4e6c3338b1a98efc2773c25349c958908897e1170ded"
+dependencies = [
+ "jiff 1.0.3",
+ "libc",
+ "log",
+ "objc2 0.6.5",
+ "objc2-foundation 0.3.2",
+ "once_cell",
+ "percent-encoding",
+ "scopeguard",
+ "urlencoding",
+ "windows",
+ "windows-core",
 ]
 
 [[package]]

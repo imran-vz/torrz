@@ -233,6 +233,17 @@ fn trackers(s: &State) -> El {
     if tor.trackers.is_empty() {
         list = list.child(text("This torrent has no trackers; its peers come from the DHT.").font(t::SMALL).color(t::MUTED));
     }
+    let auto = s.snap.session.auto_trackers;
+    let mut tools = row().w_full().pt(4.0).gap(14.0).center_y();
+    tools = if tor.private {
+        tools.child(text("Private torrent: it only talks to its own tracker, so Torrz adds no public ones.").font(t::SMALL).color(t::MUTED))
+    } else {
+        tools.child(act(
+            row().h(24.0).px(10.0).gap(6.0).radius(6.0).center_y().fill(t::WHITE.alpha(0.09)).hover(t::HOVER).press(t::PRESS).child(text("Add Best Trackers").font(t::SMALL_M).color(t::TEXT)).label("Add the best public trackers").help("The fastest public trackers from newTrackon, as they answer from here"),
+            Command::AddTrackers { targets: vec![tor.id.to_string()], urls: Vec::new() },
+        ))
+    };
+    list = list.child(tools.child(super::overlays::checkbox("Add them to new torrents too", auto, Command::AutoTrackers { on: Some(!auto) })));
     list.grow(1.0)
 }
 
@@ -267,7 +278,11 @@ fn log(s: &State) -> El {
                 .w_full()
                 .gap(10.0)
                 .child(text(l.time.clone()).font(t::MONO).color(t::FAINT))
-                .child(text(if l.origin == Origin::Ui { "ui " } else { "cli" }).font(t::MONO).color(if l.origin == Origin::Ui { t::BLUE_TEXT } else { t::AMBER }))
+                .child(text(format!("{:<5}", l.origin.id())).font(t::MONO).color(match l.origin {
+                    Origin::Ui => t::BLUE_TEXT,
+                    Origin::Cli => t::AMBER,
+                    Origin::Watch => t::GREEN_TEXT,
+                }))
                 .child(text(l.cli.clone()).font(t::MONO).color(t::TEXT_2).truncate().selectable(true))
                 .child(text(format!("→ {}", l.result)).font(t::MONO).color(if l.ok { t::GREEN_TEXT } else { t::RED }).truncate().grow(1.0)),
         );

@@ -12,3 +12,7 @@ tokio.workspace = true
 librqbit.workspace = true
 libc = "0.2"
 clap.workspace = true
+trash = "5.4"
+# Fetching the public tracker list. Both are librqbit's own, with its TLS.
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+url = "2"

@@ -58,6 +58,9 @@ pub enum Sub {
         /// The category to file it under (shown in the sidebar).
         #[arg(long)]
         category: Option<String>,
+        /// Move the .torrent file to the Trash once it is added.
+        #[arg(long)]
+        trash: bool,
     },
     /// Pause torrents: ids, info hashes, `all` or `selected`.
     Pause {
@@ -125,11 +128,49 @@ pub enum Sub {
         /// An id, an info hash or `selected`.
         target: String,
     },
+    /// Watch a folder and add every .torrent file that appears in it. Alone, says what is watched.
+    Watch {
+        /// The folder to watch.
+        #[arg(conflicts_with = "off")]
+        dir: Option<String>,
+        /// Stop watching.
+        #[arg(long)]
+        off: bool,
+        /// Move each .torrent file to the Trash once it is added (`on`), or leave it (`off`).
+        #[arg(long, value_enum)]
+        trash: Option<OnOff>,
+    },
+    /// Public trackers from newTrackon, ranked by how fast they answer from here.
+    Trackers {
+        #[command(subcommand)]
+        sub: TrackersSub,
+    },
     /// Move the window: what it shows, selects and has open.
     Ui {
         #[command(subcommand)]
         ui: UiSub,
     },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum TrackersSub {
+    /// The best public trackers, fastest first (kept for a few hours).
+    Best {
+        /// Fetch and probe them again now.
+        #[arg(long)]
+        refresh: bool,
+    },
+    /// Give torrents more trackers: the best public ones, or the --url ones. Skips private torrents.
+    Add {
+        /// Ids, info hashes, `all` or `selected`.
+        #[arg(required = true)]
+        targets: Vec<String>,
+        /// A tracker to add instead of the best ones; repeat for several.
+        #[arg(long = "url")]
+        urls: Vec<String>,
+    },
+    /// Give every new torrent the best public trackers as it is added; with no argument, toggle.
+    Auto(Toggle),
 }
 
 #[derive(Args, Debug)]
@@ -191,16 +232,16 @@ pub enum UiSub {
     },
     /// Run the highlighted palette row.
     PaletteRun,
-    /// add, remove, limits or none.
+    /// add, remove, limits, watch or none.
     Dialog {
         /// The dialog to open; `none` closes whichever is open.
         name: String,
     },
-    /// Set a field of the open dialog: source, paused, delete-files, down or up.
+    /// Set a field of the open dialog: source, paused, trash, delete-files, down, up or dir.
     Field {
         /// The field's name.
         name: String,
-        /// Text for source, down and up; `on` or `off` for paused and delete-files.
+        /// Text for source, down, up and dir; `on` or `off` for paused, trash and delete-files.
         value: String,
     },
     /// Press the open dialog's main button.
@@ -221,6 +262,15 @@ pub enum UiSub {
         /// Which version of the icon the Dock shows while Torrz runs.
         style: String,
     },
+    /// Make Torrz the app that opens magnet links (macOS asks you to confirm).
+    DefaultApp,
+    /// Copy a torrent's name, hash or magnet link to the clipboard (and print it).
+    Copy {
+        /// name, hash or magnet.
+        what: String,
+        /// An id, an info hash or `selected`.
+        target: String,
+    },
 }
 
 /// What a command line asks for.
@@ -237,7 +287,7 @@ impl Sub {
             Sub::List => Command::List,
             Sub::Show { target } => Command::Show { target },
             Sub::Stats => Command::Stats,
-            Sub::Add { source, paused, dir, category } => Command::Add { source, paused, dir, category },
+            Sub::Add { source, paused, dir, category, trash } => Command::Add { source, paused, dir, category, trash },
             Sub::Pause { targets } => Command::Pause { targets },
             Sub::Resume { targets } => Command::Resume { targets },
             Sub::Rm { targets, delete_files } => Command::Remove { targets, delete_files },
@@ -246,6 +296,12 @@ impl Sub {
             Sub::AltLimits { state } => Command::AltLimits { on: OnOff::get(state) },
             Sub::Category { targets, name, .. } => Command::Category { targets, name },
             Sub::Reveal { target } => Command::Reveal { target },
+            Sub::Watch { dir, off, trash } => Command::Watch { dir, off, trash: OnOff::get(trash) },
+            Sub::Trackers { sub } => match sub {
+                TrackersSub::Best { refresh } => Command::BestTrackers { refresh },
+                TrackersSub::Add { targets, urls } => Command::AddTrackers { targets, urls },
+                TrackersSub::Auto(t) => Command::AutoTrackers { on: OnOff::get(t.state) },
+            },
             Sub::Ui { ui } => Command::Ui(match ui {
                 UiSub::State => Ui::State,
                 UiSub::Filter { name } => Ui::Filter { name },
@@ -264,6 +320,8 @@ impl Sub {
                 UiSub::Inspector(t) => Ui::Inspector { open: OnOff::get(t.state) },
                 UiSub::Window { action } => Ui::Window { action },
                 UiSub::Icon { style } => Ui::Icon { style },
+                UiSub::DefaultApp => Ui::DefaultApp,
+                UiSub::Copy { what, target } => Ui::Copy { what, target },
             }),
         })
     }
@@ -319,8 +377,8 @@ mod tests {
             Command::List,
             Command::Stats,
             Command::Show { target: "3".into() },
-            Command::Add { source: "magnet:?xt=urn:btih:abc&dn=it's here".into(), paused: true, dir: Some("/tmp/a b".into()), category: Some("Linux ISOs".into()) },
-            Command::Add { source: "/tmp/x.torrent".into(), paused: false, dir: None, category: None },
+            Command::Add { source: "magnet:?xt=urn:btih:abc&dn=it's here".into(), paused: true, dir: Some("/tmp/a b".into()), category: Some("Linux ISOs".into()), trash: false },
+            Command::Add { source: "/tmp/x.torrent".into(), paused: false, dir: None, category: None, trash: true },
             Command::Pause { targets: t(&["1", "2"]) },
             Command::Resume { targets: t(&["all"]) },
             Command::Remove { targets: t(&["selected"]), delete_files: true },
@@ -334,6 +392,16 @@ mod tests {
             Command::Category { targets: t(&["1"]), name: Some("Films".into()) },
             Command::Category { targets: t(&["1"]), name: None },
             Command::Reveal { target: "2".into() },
+            Command::Watch { dir: None, off: false, trash: None },
+            Command::Watch { dir: Some("/tmp/a b".into()), off: false, trash: Some(true) },
+            Command::Watch { dir: None, off: true, trash: None },
+            Command::Watch { dir: None, off: false, trash: Some(false) },
+            Command::BestTrackers { refresh: false },
+            Command::BestTrackers { refresh: true },
+            Command::AddTrackers { targets: t(&["1", "3"]), urls: vec![] },
+            Command::AddTrackers { targets: t(&["selected"]), urls: t(&["udp://a.example:80/announce", "https://b.example/announce?x=1&y=2"]) },
+            Command::AutoTrackers { on: None },
+            Command::AutoTrackers { on: Some(false) },
         ] {
             round_trip(c);
         }
@@ -360,6 +428,8 @@ mod tests {
             Ui::Inspector { open: None },
             Ui::Window { action: "hide".into() },
             Ui::Icon { style: "dark".into() },
+            Ui::DefaultApp,
+            Ui::Copy { what: "magnet".into(), target: "3".into() },
         ] {
             round_trip(Command::Ui(u));
         }

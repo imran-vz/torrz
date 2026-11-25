@@ -1,6 +1,7 @@
 //! The Graphite window: sidebar, toolbar, table, inspector, status bar, and what floats over them.
 
 mod inspector;
+pub mod menu;
 mod overlays;
 mod sidebar;
 mod table;
@@ -80,6 +81,13 @@ fn status_bar(s: &State) -> El {
     if ss.limit_down.is_some() || ss.limit_up.is_some() {
         bar = bar.child(dim(format!("{} ↓ {}  ↑ {}", if ss.alt_limits { "Alt limits" } else { "Limits" }, limit(ss.limit_down), limit(ss.limit_up))).color(if ss.alt_limits { t::AMBER } else { t::MUTED }));
     }
+    if let Some(d) = &ss.watch_dir {
+        let name = std::path::Path::new(d).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| d.clone());
+        bar = bar.child(act(
+            row().gap(5.0).center_y().child(icon(Icon::Folder, 12.0, t::MUTED)).child(dim(format!("Watching {name}"))).label(format!("Watching {d} for .torrent files")).help(d.clone()),
+            ui(Ui::Dialog { name: "watch".into() }),
+        ));
+    }
     bar = bar.child(el().grow(1.0));
     if s.demo {
         bar = bar.child(text("Demo swarm").font(t::SMALL_M).color(t::AMBER));
@@ -114,7 +122,7 @@ pub fn view(s: &State, cx: &mut Cx<State>) -> El {
         .accepts_extensions(&["torrent"])
         .on_drop_files(|s: &mut State, paths: &[std::path::PathBuf], tx: &mut Tx| {
             for p in paths {
-                dispatch(s, Command::Add { source: p.display().to_string(), paused: false, dir: None, category: None }, Origin::Ui, tx);
+                dispatch(s, Command::Add { source: p.display().to_string(), paused: false, dir: None, category: None, trash: false }, Origin::Ui, tx);
             }
         })
         .child(body);

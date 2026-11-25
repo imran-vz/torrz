@@ -47,7 +47,11 @@ pub struct Torrent {
     pub pieces: u32,
     pub save_path: String,
     pub category: Option<String>,
+    /// Tracker hosts.
     pub trackers: Vec<String>,
+    /// A private torrent talks only to its own tracker, so Torrz never adds public ones.
+    #[serde(default)]
+    pub private: bool,
 }
 
 impl Torrent {
@@ -63,6 +67,19 @@ impl Torrent {
     pub fn finished(&self) -> bool {
         self.size > 0 && self.done >= self.size
     }
+
+    /// A magnet link for it: its info hash and name (peers come from the DHT).
+    pub fn magnet(&self) -> String {
+        let name: String = url::form_urlencoded::byte_serialize(self.name.as_bytes()).collect();
+        format!("magnet:?xt=urn:btih:{}&dn={name}", self.hash)
+    }
+}
+
+/// A public tracker and how long it took to answer from here.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RankedTracker {
+    pub url: String,
+    pub ms: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -108,6 +125,15 @@ pub struct SessionStats {
     pub alt_limits: bool,
     pub free_disk: Option<u64>,
     pub download_dir: String,
+    /// The folder watched for .torrent files, if any.
+    #[serde(default)]
+    pub watch_dir: Option<String>,
+    /// Whether a watched .torrent file goes to the Trash once it is added.
+    #[serde(default)]
+    pub watch_trash: bool,
+    /// Whether new torrents get the best public trackers as they are added.
+    #[serde(default)]
+    pub auto_trackers: bool,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

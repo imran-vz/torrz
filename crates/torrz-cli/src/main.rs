@@ -132,6 +132,13 @@ fn print(cmd: &Command, r: &Response) {
         }
         Command::Ui(Ui::State) => println!("{}", serde_json::to_string_pretty(&r.data).unwrap_or_default()),
         Command::Reveal { .. } => println!("{}", r.data["path"].as_str().unwrap_or(&r.message)),
+        Command::Ui(Ui::Copy { .. }) => println!("{}", r.data.as_str().unwrap_or(&r.message)),
+        Command::BestTrackers { .. } => {
+            let best: Vec<torrz_core::model::RankedTracker> = serde_json::from_value(r.data.clone()).unwrap_or_default();
+            for t in best {
+                println!("{:>5} ms  {}", t.ms, t.url);
+            }
+        }
         _ => println!("{}", if r.message.is_empty() { "ok" } else { &r.message }),
     }
 }

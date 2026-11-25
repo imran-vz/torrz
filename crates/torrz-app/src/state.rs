@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex, mpsc};
 
 use rune::{TextEdit, Tx};
 use serde_json::json;
+use torrz_core::backend::{expand_home, local_file};
 use torrz_core::model::speed;
 use torrz_core::{Backend, Command, Response, Snapshot, Torrent, TorrentState, Ui};
 
@@ -15,6 +16,18 @@ use crate::theme::Icon;
 pub enum Origin {
     Ui,
     Cli,
+    /// The watched folder: a .torrent file arrived in it.
+    Watch,
+}
+
+impl Origin {
+    pub fn id(self) -> &'static str {
+        match self {
+            Origin::Ui => "ui",
+            Origin::Cli => "cli",
+            Origin::Watch => "watch",
+        }
+    }
 }
 
 /// Work for the engine thread, which may block on the network or the disk.
@@ -244,9 +257,17 @@ impl IconStyle {
 #[allow(clippy::large_enum_variant)]
 pub enum Dialog {
     None,
-    Add { source: TextEdit, paused: bool },
+    /// `trash` applies only when `source` is a .torrent file.
+    Add { source: TextEdit, paused: bool, trash: bool },
     Remove { ids: Vec<u64>, delete_files: bool },
     Limits { down: TextEdit, up: TextEdit },
+    /// An empty `dir` stops watching.
+    Watch { dir: TextEdit, trash: bool },
+}
+
+/// Whether an add dialog's source is a .torrent file, which is when it can go to the Trash.
+pub fn is_torrent_file(source: &str) -> bool {
+    local_file(source).is_some_and(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("torrent")))
 }
 
 impl Dialog {
@@ -256,6 +277,7 @@ impl Dialog {
             Dialog::Add { .. } => "add",
             Dialog::Remove { .. } => "remove",
             Dialog::Limits { .. } => "limits",
+            Dialog::Watch { .. } => "watch",
         }
     }
 }
@@ -316,6 +338,10 @@ pub struct State {
     pub torrent_history: (u64, VecDeque<(u64, u64)>),
     pub demo: bool,
     pub icon: IconStyle,
+    /// Whether magnet links open in Torrz; `None` when that can't be changed from here.
+    pub magnet_default: Option<bool>,
+    /// The add dialog's last "move to the Trash" choice, which the next one starts with.
+    pub trash_added: bool,
 }
 
 impl State {
@@ -343,6 +369,8 @@ impl State {
             torrent_history: (0, VecDeque::new()),
             demo,
             icon: IconStyle::Auto,
+            magnet_default: crate::handler::magnet_is_default(),
+            trash_added: false,
         };
         s.icon = IconStyle::parse(&s.backend.app_icon()).unwrap_or(IconStyle::Auto);
         let snap = s.backend.snapshot(None);
@@ -437,8 +465,25 @@ impl State {
         }
         if !resp.ok {
             self.say(&resp.message, false, tx);
-        } else if matches!(cmd, Command::Add { .. } | Command::Remove { .. } | Command::Limit { .. } | Command::AltLimits { .. } | Command::Category { .. }) {
+        } else if matches!(cmd, Command::Add { .. } | Command::Remove { .. } | Command::Limit { .. } | Command::AltLimits { .. } | Command::Category { .. } | Command::AddTrackers { .. } | Command::AutoTrackers { .. } | Command::BestTrackers { refresh: true }) {
             self.say(&resp.message, true, tx);
+        }
+        // A torrent given trackers may come back under a new id: the selection follows it.
+        if let (Command::AddTrackers { .. }, true) = (cmd, resp.ok) {
+            let mut moved = false;
+            for m in resp.data.as_array().into_iter().flatten() {
+                if let (Some(old), Some(new)) = (m["id"].as_u64(), m["now"].as_u64())
+                    && old != new
+                {
+                    for x in self.selected.iter_mut().filter(|x| **x == old) {
+                        *x = new;
+                        moved = true;
+                    }
+                }
+            }
+            if moved {
+                self.mirror_selection();
+            }
         }
         if let (Command::Reveal { .. }, Some(path)) = (cmd, resp.data.get("path").and_then(|p| p.as_str()))
             && resp.ok
@@ -468,9 +513,10 @@ impl State {
             "inspector": self.inspector_open,
             "dialog": match &self.dialog {
                 Dialog::None => json!(null),
-                Dialog::Add { source, paused } => json!({ "name": "add", "source": source.text, "paused": paused }),
+                Dialog::Add { source, paused, trash } => json!({ "name": "add", "source": source.text, "paused": paused, "trash": trash }),
                 Dialog::Remove { ids, delete_files } => json!({ "name": "remove", "ids": ids, "delete-files": delete_files }),
                 Dialog::Limits { down, up } => json!({ "name": "limits", "down": down.text, "up": up.text }),
+                Dialog::Watch { dir, trash } => json!({ "name": "watch", "dir": dir.text, "trash": trash }),
             },
             "palette": self.palette.as_ref().map(|p| json!({
                 "query": p.query.text,
@@ -478,9 +524,10 @@ impl State {
                 "items": items.iter().flatten().map(|i| json!({ "title": i.title, "command": i.cmd.to_cli() })).collect::<Vec<_>>(),
             })),
             "toast": self.toast.as_ref().map(|t| t.text.clone()),
-            "log": self.log.iter().rev().take(20).map(|l| json!({ "time": l.time, "from": if l.origin == Origin::Ui { "ui" } else { "cli" }, "command": l.cli, "result": l.result, "ok": l.ok })).collect::<Vec<_>>(),
+            "log": self.log.iter().rev().take(20).map(|l| json!({ "time": l.time, "from": l.origin.id(), "command": l.cli, "result": l.result, "ok": l.ok })).collect::<Vec<_>>(),
             "demo": self.demo,
             "icon": self.icon.id(),
+            "magnet_default": self.magnet_default,
         })
     }
 }
@@ -489,13 +536,6 @@ fn push(h: &mut VecDeque<(u64, u64)>, v: (u64, u64)) {
     h.push_back(v);
     while h.len() > HISTORY {
         h.pop_front();
-    }
-}
-
-pub fn expand_home(p: &str) -> std::path::PathBuf {
-    match p.strip_prefix("~/") {
-        Some(rest) => std::path::PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(rest),
-        None => p.into(),
     }
 }
 
@@ -538,9 +578,21 @@ pub fn palette_items(s: &State, query: &str) -> Vec<PaletteItem> {
             v.push(item(Icon::Play, "Selection", format!("Resume {what}"), Command::Resume { targets: sel.clone() }));
         }
         v.push(item(Icon::Folder, "Selection", "Reveal in Finder".into(), Command::Reveal { target: t.id.to_string() }));
+        v.push(item(Icon::Link, "Selection", format!("Add Best Trackers to {what}"), Command::AddTrackers { targets: sel.clone(), urls: Vec::new() }));
+        v.push(item(Icon::Link, "Selection", "Copy Magnet Link".into(), ui(Ui::Copy { what: "magnet".into(), target: t.id.to_string() })));
         v.push(item(Icon::Trash, "Selection", format!("Remove {what}…"), ui(Ui::Dialog { name: "remove".into() })));
     }
     v.push(item(Icon::Plus, "Actions", "Add Torrent…".into(), ui(Ui::Dialog { name: "add".into() })));
+    v.push(item(Icon::Folder, "Actions", "Watch a Folder for Torrents…".into(), ui(Ui::Dialog { name: "watch".into() })));
+    if s.snap.session.watch_dir.is_some() {
+        v.push(item(Icon::Folder, "Actions", "Stop Watching the Folder".into(), Command::Watch { dir: None, off: true, trash: None }));
+    }
+    if s.magnet_default == Some(false) {
+        v.push(item(Icon::Link, "Actions", "Open Magnet Links with Torrz".into(), ui(Ui::DefaultApp)));
+    }
+    let auto = s.snap.session.auto_trackers;
+    v.push(item(Icon::Link, "Actions", format!("Turn Best Trackers for New Torrents {}", if auto { "Off" } else { "On" }), Command::AutoTrackers { on: Some(!auto) }));
+    v.push(item(Icon::Link, "Actions", "Rank the Public Trackers Again".into(), Command::BestTrackers { refresh: true }));
     v.push(item(Icon::Pause, "Actions", "Pause All".into(), Command::Pause { targets: vec!["all".into()] }));
     v.push(item(Icon::Play, "Actions", "Resume All".into(), Command::Resume { targets: vec!["all".into()] }));
     v.push(item(Icon::Sliders, "Actions", "Set Speed Limits…".into(), ui(Ui::Dialog { name: "limits".into() })));
@@ -731,7 +783,9 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
                 "none" => Dialog::None,
                 "add" => {
                     tx.focus_when_shown("dialog-source", false);
-                    Dialog::Add { source: TextEdit::new(""), paused: false }
+                    // Another app may have taken magnet links since; the dialog offers them back.
+                    s.magnet_default = crate::handler::magnet_is_default();
+                    Dialog::Add { source: TextEdit::new(""), paused: false, trash: s.trash_added }
                 }
                 "remove" => {
                     anyhow::ensure!(!s.selected.is_empty(), "select a torrent to remove first");
@@ -742,7 +796,12 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
                     tx.focus_when_shown("dialog-down", false);
                     Dialog::Limits { down: TextEdit::new(show(s.snap.session.limit_down)), up: TextEdit::new(show(s.snap.session.limit_up)) }
                 }
-                _ => anyhow::bail!("no dialog {name:?}: add, remove, limits or none"),
+                "watch" => {
+                    tx.focus_when_shown("dialog-dir", false);
+                    let ss = &s.snap.session;
+                    Dialog::Watch { dir: TextEdit::new(ss.watch_dir.clone().unwrap_or_default()), trash: ss.watch_dir.is_none() || ss.watch_trash }
+                }
+                _ => anyhow::bail!("no dialog {name:?}: add, remove, limits, watch or none"),
             };
             Response::ok(format!("dialog: {}", s.dialog.name()))
         }
@@ -755,6 +814,9 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
             match (&mut s.dialog, name.as_str()) {
                 (Dialog::Add { source, .. }, "source") => source.replace_text(value.clone()),
                 (Dialog::Add { paused, .. }, "paused") => *paused = truthy()?,
+                (Dialog::Add { trash, .. }, "trash") => *trash = truthy()?,
+                (Dialog::Watch { dir, .. }, "dir") => dir.replace_text(value.clone()),
+                (Dialog::Watch { trash, .. }, "trash") => *trash = truthy()?,
                 (Dialog::Remove { delete_files, .. }, "delete-files") => *delete_files = truthy()?,
                 (Dialog::Limits { down, .. }, "down") => down.replace_text(value.clone()),
                 (Dialog::Limits { up, .. }, "up") => up.replace_text(value.clone()),
@@ -766,9 +828,14 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
         Ui::Confirm => {
             let cmd = match &s.dialog {
                 Dialog::None => anyhow::bail!("no dialog is open"),
-                Dialog::Add { source, paused } => {
+                Dialog::Add { source, paused, trash } => {
                     anyhow::ensure!(!source.text.trim().is_empty(), "paste a magnet link or choose a .torrent file first");
-                    Command::Add { source: source.text.trim().to_owned(), paused: *paused, dir: None, category: None }
+                    // The box shows only for a .torrent file; a link has nothing to trash.
+                    let file = is_torrent_file(&source.text);
+                    if file {
+                        s.trash_added = *trash;
+                    }
+                    Command::Add { source: source.text.trim().to_owned(), paused: *paused, dir: None, category: None, trash: file && *trash }
                 }
                 Dialog::Remove { ids, delete_files } => Command::Remove { targets: ids.iter().map(|i| i.to_string()).collect(), delete_files: *delete_files },
                 Dialog::Limits { down, up } => {
@@ -778,6 +845,17 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
                     torrz_core::model::parse_rate(&d)?;
                     torrz_core::model::parse_rate(&u)?;
                     Command::Limit { down: Some(d), up: Some(u) }
+                }
+                Dialog::Watch { dir, trash } => {
+                    let d = dir.text.trim();
+                    if d.is_empty() {
+                        anyhow::ensure!(s.snap.session.watch_dir.is_some(), "choose a folder to watch first");
+                        Command::Watch { dir: None, off: true, trash: None }
+                    } else {
+                        // Refuse here so the dialog stays open on a typo.
+                        anyhow::ensure!(expand_home(d).is_dir(), "{d} is not a folder");
+                        Command::Watch { dir: Some(d.to_owned()), off: false, trash: Some(*trash) }
+                    }
                 }
             };
             s.dialog = Dialog::None;
@@ -814,6 +892,37 @@ fn apply_ui(s: &mut State, u: Ui, origin: Origin, tx: &mut Tx) -> anyhow::Result
             s.icon = IconStyle::parse(&style).ok_or_else(|| anyhow::anyhow!("no icon style {style:?}: auto, light or dark"))?;
             s.backend.set_app_icon(s.icon.id());
             Response::ok(format!("app icon: {}", s.icon.id()))
+        }
+        Ui::Copy { what, target } => {
+            let id = Backend::resolve(&s.snap.torrents, std::slice::from_ref(&target), &s.selected)?[0];
+            let t = s.torrent(id).ok_or_else(|| anyhow::anyhow!("no torrent {id}"))?;
+            let (label, text) = match what.to_ascii_lowercase().as_str() {
+                "name" => ("name", t.name.clone()),
+                "hash" => ("info hash", t.hash.clone()),
+                "magnet" => ("magnet link", t.magnet()),
+                _ => anyhow::bail!("copy name, hash or magnet, not {what:?}"),
+            };
+            tx.copy(text.clone());
+            s.say(&format!("Copied the {label}"), true, tx);
+            Response::data(format!("copied the {label}"), text)
+        }
+        Ui::DefaultApp => {
+            if s.magnet_default == Some(true) {
+                return Ok(Response::ok("magnet links already open with Torrz"));
+            }
+            crate::handler::make_magnet_default(|answer| {
+                // macOS answers once the user has; the window may be anywhere by then.
+                if let Some(h) = crate::HANDLE.get() {
+                    h.update(move |s: &mut State, tx| {
+                        s.magnet_default = crate::handler::magnet_is_default();
+                        match &answer {
+                            Ok(()) => s.say("Magnet links now open with Torrz", true, tx),
+                            Err(e) => s.say(&format!("Magnet links still open elsewhere: {e}"), false, tx),
+                        }
+                    });
+                }
+            })?;
+            Response::ok("asked macOS to open magnet links with Torrz")
         }
     })
 }

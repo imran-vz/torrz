@@ -4,7 +4,7 @@ use rune::{El, FileDialogOptions, Key, KeyEvent, ScrollSpec, Tx, col, el, row, t
 use torrz_core::{Command, Ui};
 
 use super::{act, ui};
-use crate::state::{Dialog, Origin, Palette, State, Toast, dispatch, palette_items};
+use crate::state::{Dialog, Origin, Palette, State, Toast, dispatch, is_torrent_file, palette_items};
 use crate::theme::{self as t, Icon, icon};
 
 fn run(s: &mut State, u: Ui, tx: &mut Tx) -> bool {
@@ -158,7 +158,24 @@ fn button(label: &str, cmd: Command, fill: rune::Color, ink: rune::Color) -> El 
     act(row().h(28.0).px(14.0).radius(7.0).center().fill(fill).hover(t::HOVER).press(t::PRESS).child(text(label).font(t::BODY_M).color(ink)).label(label), cmd)
 }
 
-fn checkbox(label: &str, on: bool, cmd: Command) -> El {
+/// A secondary button beside a text field, such as "Choose File…". `key` names the field it fills.
+fn side_button(key: &'static str, label: &'static str, on_press: impl Fn(&mut State, &mut Tx) + 'static) -> El {
+    row()
+        .key(key)
+        .h(30.0)
+        .px(12.0)
+        .radius(7.0)
+        .center()
+        .fill(t::WHITE.alpha(0.09))
+        .hover(t::HOVER)
+        .press(t::PRESS)
+        .role("button")
+        .label(label)
+        .child(text(label).font(t::BODY).color(t::TEXT))
+        .on_press_tx(on_press)
+}
+
+pub(super) fn checkbox(label: &str, on: bool, cmd: Command) -> El {
     let box_ = el().size(14.0, 14.0).radius(4.0).center().fill(if on { t::BLUE } else { t::BLUE.alpha(0.0) }).border(1.2, if on { t::BLUE } else { t::GREY }).children(on.then(|| icon(Icon::Check, 10.0, t::WHITE)));
     act(row().gap(8.0).center_y().child(box_).child(text(label).font(t::BODY).color(t::TEXT_2)).label(label).checked(on), cmd).role("checkbox")
 }
@@ -168,9 +185,8 @@ pub fn dialog(s: &State) -> El {
     let onoff = |v: bool| if v { "on" } else { "off" }.to_owned();
     let (title, body, confirm): (String, El, El) = match &s.dialog {
         Dialog::None => return el(),
-        Dialog::Add { source, paused } => (
-            "Add Torrent".into(),
-            col()
+        Dialog::Add { source, paused, trash } => {
+            let mut body = col()
                 .w_full()
                 .gap(12.0)
                 .child(text("Paste a magnet link or a URL, or choose a .torrent file.").font(t::BODY).color(t::MUTED))
@@ -182,36 +198,35 @@ pub fn dialog(s: &State) -> El {
                             Dialog::Add { source, .. } => source,
                             _ => &mut s.scratch,
                         }).grow(1.0).min_w(0.0))
-                        .child(
-                            row()
-                                .key("choose-file")
-                                .h(30.0)
-                                .px(12.0)
-                                .radius(7.0)
-                                .center()
-                                .fill(t::WHITE.alpha(0.09))
-                                .hover(t::HOVER)
-                                .press(t::PRESS)
-                                .role("button")
-                                .label("Choose File…")
-                                .child(text("Choose File…").font(t::BODY).color(t::TEXT))
-                                .on_press_tx(|_: &mut State, tx: &mut Tx| {
-                                    let options = FileDialogOptions { title: "Choose a torrent".into(), ..Default::default() }.filter("Torrents", &["torrent"]);
-                                    tx.open_file(options, |s: &mut State, result, tx| match result {
-                                        // The picked path lands in the field exactly as `torrz ui field source` would put it.
-                                        Ok(Some(path)) => {
-                                            run(s, Ui::Field { name: "source".into(), value: path.display().to_string() }, tx);
-                                        }
-                                        Ok(None) => {}
-                                        Err(e) => s.say(&format!("Couldn't open the file picker: {e}"), false, tx),
-                                    });
-                                }),
-                        ),
+                        .child(side_button("choose-file", "Choose File…", |_: &mut State, tx: &mut Tx| {
+                            let options = FileDialogOptions { title: "Choose a torrent".into(), ..Default::default() }.filter("Torrents", &["torrent"]);
+                            tx.open_file(options, |s: &mut State, result, tx| match result {
+                                // The picked path lands in the field exactly as `torrz ui field source` would put it.
+                                Ok(Some(path)) => {
+                                    run(s, Ui::Field { name: "source".into(), value: path.display().to_string() }, tx);
+                                }
+                                Ok(None) => {}
+                                Err(e) => s.say(&format!("Couldn't open the file picker: {e}"), false, tx),
+                            });
+                        })),
                 )
-                .child(checkbox("Add paused", *paused, ui(Ui::Field { name: "paused".into(), value: onoff(!*paused) })))
-                .child(text(format!("Saves to {}", s.snap.session.download_dir)).font(t::SMALL).color(t::FAINT)),
-            button("Add", ui(Ui::Confirm), t::BLUE, t::WHITE),
-        ),
+                .child(checkbox("Add paused", *paused, ui(Ui::Field { name: "paused".into(), value: onoff(!*paused) })));
+            if is_torrent_file(&source.text) {
+                body = body.child(checkbox("Move the .torrent file to the Trash", *trash, ui(Ui::Field { name: "trash".into(), value: onoff(!*trash) })));
+            }
+            body = body.child(text(format!("Saves to {}", s.snap.session.download_dir)).font(t::SMALL).color(t::FAINT));
+            if s.magnet_default == Some(false) {
+                body = body.child(
+                    row()
+                        .w_full()
+                        .gap(6.0)
+                        .center_y()
+                        .child(text("Magnet links open in another app.").font(t::SMALL).color(t::FAINT))
+                        .child(act(text("Open them with Torrz").font(t::SMALL_M).color(t::BLUE_TEXT).label("Open magnet links with Torrz"), ui(Ui::DefaultApp))),
+                );
+            }
+            ("Add Torrent".into(), body, button("Add", ui(Ui::Confirm), t::BLUE, t::WHITE))
+        }
         Dialog::Remove { ids, delete_files } => {
             let what = match ids.as_slice() {
                 [one] => format!("“{}”", s.torrent(*one).map(|x| x.name.as_str()).unwrap_or("this torrent")),
@@ -245,6 +260,43 @@ pub fn dialog(s: &State) -> El {
                     }))),
                 button("Apply", ui(Ui::Confirm), t::BLUE, t::WHITE),
             )
+        }
+        Dialog::Watch { dir, trash } => {
+            let watching = s.snap.session.watch_dir.as_deref();
+            let mut body = col()
+                .w_full()
+                .gap(12.0)
+                .child(text("Torrz adds each .torrent file that lands in this folder. Files already there are left alone.").font(t::BODY).color(t::MUTED).wrap())
+                .child(
+                    row()
+                        .w_full()
+                        .gap(8.0)
+                        .child(field("dialog-dir", dir, "~/Downloads", "Folder to watch", |s| match &mut s.dialog {
+                            Dialog::Watch { dir, .. } => dir,
+                            _ => &mut s.scratch,
+                        }).grow(1.0).min_w(0.0))
+                        .child(side_button("choose-folder", "Choose Folder…", |_: &mut State, tx: &mut Tx| {
+                            tx.open_folder(FileDialogOptions { title: "Choose a folder to watch".into(), ..Default::default() }, |s: &mut State, result, tx| match result {
+                                Ok(Some(path)) => {
+                                    run(s, Ui::Field { name: "dir".into(), value: path.display().to_string() }, tx);
+                                }
+                                Ok(None) => {}
+                                Err(e) => s.say(&format!("Couldn't open the folder picker: {e}"), false, tx),
+                            });
+                        })),
+                )
+                .child(checkbox("Move each .torrent file to the Trash once it's added", *trash, ui(Ui::Field { name: "trash".into(), value: onoff(!*trash) })));
+            body = body.child(
+                text(match watching {
+                    Some(d) => format!("Watching {d} now. Clear the box to stop."),
+                    None => "Not watching a folder now.".into(),
+                })
+                .font(t::SMALL)
+                .color(t::FAINT)
+                .wrap(),
+            );
+            let apply = if dir.text.trim().is_empty() && watching.is_some() { "Stop Watching" } else { "Watch" };
+            ("Watch a Folder".into(), body, button(apply, ui(Ui::Confirm), t::BLUE, t::WHITE))
         }
     };
     let sheet = col()

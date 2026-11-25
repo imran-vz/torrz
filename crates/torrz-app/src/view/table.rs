@@ -84,6 +84,7 @@ pub fn toolbar(s: &State, leading_inset: f32) -> El {
         .child(tool(Icon::Trash, "Remove…", ui(Ui::Dialog { name: "remove".into() }), any))
         .child(sep())
         .child(tool(Icon::Sliders, "Speed Limits (⌘,)", ui(Ui::Dialog { name: "limits".into() }), true))
+        .child(tool(Icon::Folder, "Watch a Folder", ui(Ui::Dialog { name: "watch".into() }), true))
         .child(tool(Icon::Panel, if s.inspector_open { "Hide Inspector (⌘I)" } else { "Show Inspector (⌘I)" }, ui(Ui::Inspector { open: Some(!s.inspector_open) }), true))
         .child(tool(Icon::Command, "Command Palette (⌘K)", ui(Ui::Palette { open: Some(true), query: None }), true))
         .child(search)
@@ -170,7 +171,8 @@ fn torrent_row(s: &State, i: usize) -> El {
         })
         .on_double_press_tx(move |s: &mut State, tx: &mut Tx| {
             dispatch(s, Command::Reveal { target: id.to_string() }, Origin::Ui, tx);
-        });
+        })
+        .on_secondary_press(move |s: &mut State, at, tx: &mut Tx| super::menu::open(s, id, at, tx));
     if !selected {
         r = r.hover(t::HOVER);
     }

@@ -150,6 +150,7 @@ fn every_control_in_every_screen_has_a_command_line() {
             "search" => "torrz ui search x",
             "palette-input" => "torrz ui palette on --query x",
             "dialog-source" | "choose-file" => "torrz ui field source x",
+            "dialog-dir" | "choose-folder" => "torrz ui field dir x",
             "dialog-down" => "torrz ui field down 1M",
             "dialog-up" => "torrz ui field up 1M",
             _ => return None,
@@ -163,6 +164,8 @@ fn every_control_in_every_screen_has_a_command_line() {
         ("palette", vec![Command::Ui(Ui::Select { targets: vec!["1".into()] }), Command::Ui(Ui::Palette { open: Some(true), query: None })]),
         ("add dialog", vec![Command::Ui(Ui::Dialog { name: "add".into() })]),
         ("limits dialog", vec![Command::Ui(Ui::Dialog { name: "limits".into() })]),
+        ("add dialog with a file", vec![Command::Ui(Ui::Dialog { name: "add".into() }), Command::Ui(Ui::Field { name: "source".into(), value: "/tmp/x.torrent".into() })]),
+        ("watch dialog", vec![Command::Ui(Ui::Dialog { name: "watch".into() })]),
         ("remove dialog", vec![Command::Ui(Ui::Select { targets: vec!["1".into()] }), Command::Ui(Ui::Dialog { name: "remove".into() })]),
     ];
     let mut checked = 0;
@@ -192,4 +195,122 @@ fn every_control_in_every_screen_has_a_command_line() {
         check(tab.id(), &rt);
     }
     assert!(checked > 300, "only {checked} controls were found: the roles this test looks for have changed");
+}
+
+#[test]
+fn the_add_dialog_offers_the_trash_only_for_a_torrent_file() {
+    let mut rt = runtime();
+    click(&mut rt, "torrz ui dialog add");
+    run(&mut rt, Command::Ui(Ui::Field { name: "source".into(), value: "magnet:?xt=urn:btih:abc".into() }));
+    assert!(rt.find("torrz ui field trash on").is_none(), "a link has no file to trash");
+
+    // A file that isn't there: the line carries --trash, and the backend refuses it, so no real
+    // file goes to the Trash in a test.
+    let missing = std::env::temp_dir().join("torrz-test-missing.torrent");
+    run(&mut rt, Command::Ui(Ui::Field { name: "source".into(), value: missing.display().to_string() }));
+    click(&mut rt, "torrz ui field trash on");
+    assert!(matches!(rt.state.dialog, Dialog::Add { trash: true, .. }));
+    click(&mut rt, "torrz ui confirm");
+    let line = format!("torrz add {} --trash", missing.display());
+    let add = rt.state.log.iter().find(|l| l.cli == line).unwrap_or_else(|| panic!("{line} is in the log"));
+    assert!(!add.ok);
+    assert!(rt.state.trash_added, "the next add dialog starts with the box ticked");
+}
+
+#[test]
+fn the_watch_dialog_sets_the_folder_and_the_status_bar_shows_it() {
+    let dir = std::env::temp_dir().join(format!("torrz-test-watch-ui-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut rt = runtime();
+    click(&mut rt, "torrz ui dialog watch");
+    assert!(matches!(rt.state.dialog, Dialog::Watch { trash: true, .. }), "a first watch folder trashes what it adds");
+    rt.update(|s, tx| assert!(!dispatch(s, Command::Ui(Ui::Confirm), Origin::Cli, tx).ok, "no folder yet"));
+    run(&mut rt, Command::Ui(Ui::Field { name: "dir".into(), value: dir.display().to_string() }));
+    click(&mut rt, "torrz ui field trash off");
+    click(&mut rt, "torrz ui confirm");
+    assert!(matches!(rt.state.dialog, Dialog::None));
+    let ss = &rt.state.snap.session;
+    assert_eq!(ss.watch_dir.as_deref().map(std::path::Path::new), Some(dir.canonicalize().unwrap().as_path()));
+    assert!(!ss.watch_trash);
+
+    // The status bar's folder opens the dialog again, filled in; clearing the folder stops.
+    click(&mut rt, "torrz ui dialog watch");
+    assert!(matches!(&rt.state.dialog, Dialog::Watch { dir: d, trash: false } if !d.text.is_empty()));
+    run(&mut rt, Command::Ui(Ui::Field { name: "dir".into(), value: String::new() }));
+    click(&mut rt, "torrz ui confirm");
+    assert_eq!(rt.state.snap.session.watch_dir, None);
+    assert!(rt.state.log.iter().any(|l| l.cli == "torrz watch --off" && l.ok));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+fn right_click(rt: &mut Runtime<State>, key: &str) {
+    let (x, y) = rt.find(key).unwrap_or_else(|| panic!("no element {key:?}"));
+    rt.secondary_down(x, y);
+    rt.secondary_up(x, y);
+    settle(rt);
+}
+
+/// Every item's id in a menu and its submenus.
+fn menu_ids(menu: &rune::PopupMenu) -> Vec<(String, bool)> {
+    let mut out = Vec::new();
+    for e in menu.entries() {
+        match e {
+            rune::PopupEntry::Item(i) => out.push((i.id().to_owned(), i.is_enabled())),
+            rune::PopupEntry::Submenu { menu, .. } => out.extend(menu_ids(menu)),
+            _ => {}
+        }
+    }
+    out
+}
+
+#[test]
+fn right_clicking_a_row_selects_it_and_its_menu_runs_command_lines() {
+    let mut rt = runtime();
+    click(&mut rt, "torrent-1");
+    right_click(&mut rt, "torrent-2");
+    assert_eq!(rt.state.selected, [2], "a row outside the selection becomes the selection");
+    let menu = rt.popup_menu().expect("the context menu is open").clone();
+    let ids = menu_ids(&menu);
+    // The parity promise, for the menu: each item is a line the CLI accepts.
+    for (id, _) in &ids {
+        assert!(matches!(parse_line(id), Ok(Parsed::Run(_))), "menu item {id:?} is not a command line");
+    }
+    let has = |line: &str| ids.iter().any(|(id, _)| id == line);
+    assert!(has("torrz pause 2") && !has("torrz resume 2"), "a downloading torrent offers Pause");
+    for line in ["torrz reveal 2", "torrz ui copy magnet 2", "torrz category 2 --clear", "torrz category 2 --name Films", "torrz trackers add 2", "torrz ui dialog remove"] {
+        assert!(has(line), "the menu has {line}");
+    }
+    rt.resolve_popup(Some("torrz pause 2")).unwrap();
+    settle(&mut rt);
+    assert_eq!(state_of(&rt, 2), TorrentState::Paused);
+    assert_eq!(rt.state.log.back().map(|l| l.cli.as_str()), Some("torrz pause 2"));
+
+    // With two selected, it acts on both.
+    rt.update(|s, tx| {
+        dispatch(s, Command::Ui(Ui::Select { targets: vec!["1".into(), "2".into()] }), Origin::Cli, tx);
+    });
+    right_click(&mut rt, "torrent-2");
+    let ids = menu_ids(rt.popup_menu().expect("open"));
+    assert!(ids.iter().any(|(id, _)| id == "torrz resume 1 2") && ids.iter().any(|(id, _)| id == "torrz pause 1 2"));
+    rt.resolve_popup(None).unwrap();
+}
+
+#[test]
+fn trackers_and_copies_work_from_the_window() {
+    let mut rt = runtime();
+    click(&mut rt, "torrent-2");
+    click(&mut rt, "torrz ui tab trackers");
+    assert!(rt.state.torrent(2).unwrap().trackers.is_empty());
+    click(&mut rt, "torrz trackers add 2");
+    assert_eq!(rt.state.torrent(2).unwrap().trackers.len(), 5, "the demo's best trackers, with no network");
+    click(&mut rt, "torrz trackers auto on");
+    assert!(rt.state.snap.session.auto_trackers);
+
+    let mut copied = None;
+    rt.update(|s, tx| {
+        let r = dispatch(s, Command::Ui(Ui::Copy { what: "magnet".into(), target: "2".into() }), Origin::Cli, tx);
+        copied = r.data.as_str().map(str::to_owned);
+    });
+    let hash = rt.state.torrent(2).unwrap().hash.clone();
+    assert_eq!(copied, Some(format!("magnet:?xt=urn:btih:{hash}&dn=Sintel.2010.4K.OpenMovie.mkv")));
 }

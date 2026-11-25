@@ -55,6 +55,7 @@ the command it came from.
 |---|---|---|
 | UI (main) | Runs Rune's event loop, `dispatch`, and the views | Never |
 | `torrz-engine-jobs` | Runs engine commands that came from the window; takes a snapshot every second | Yes |
+| `torrz-watch` | Every two seconds, asks `Backend::take_watched` for `.torrent` files new to the watched folder and runs `add` for each (logged as from `watch`) | Yes |
 | `torrz-ipc` and one per connection | Accept socket connections; run engine commands from the CLI directly, and pass window commands to the UI thread | Yes |
 | `torrz-engine` (tokio pool) | librqbit's own runtime | Its own business |
 
@@ -139,6 +140,10 @@ events, against the demo engine. One test,
 palette, each inspector tab, the sidebar hidden), finds every element with an interactive
 role, and requires its key to be a line the CLI parser accepts. A control built without
 `act`, or a command the parser does not know, fails it.
+
+The row's right-click menu is a native menu, not elements, so it is held to the same rule
+another way: each item's id is its command line, a pick is parsed with the CLI's parser before
+it runs, and a test opens the menu and parses every id.
 
 Another test performs the same steps once by clicking and once by commands, and requires
 `torrz ui state` to come out identical.

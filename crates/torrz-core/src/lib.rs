@@ -7,6 +7,7 @@ pub mod command;
 pub mod engine;
 pub mod ipc;
 pub mod model;
+pub mod trackers;
 
 pub use backend::Backend;
 pub use command::{Command, Response, Ui};

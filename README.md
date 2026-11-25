@@ -27,6 +27,12 @@ window shows you the command for what you just clicked. The window is drawn with
   line that ran, with its result.
 - **Real BitTorrent.** Magnet links, DHT, peer exchange, uTP, UDP trackers, private
   torrents, per-file selection, fast resume, speed limits and UPnP, all from librqbit.
+- **Magnet links and a watched folder.** Magnet links from a browser open in the Add
+  dialog, and a folder you choose is watched for `.torrent` files, which are added as they
+  arrive and, if you like, moved to the Trash.
+- **Better-connected torrents.** Torrz takes newTrackon's list of public trackers that stay
+  up, probes each from your machine, and adds the fastest 20 to a torrent (or to every new
+  one). Private torrents are never touched.
 - **A demo mode.** `--demo` runs a simulated swarm, so you can try the whole interface
   without touching the network or the disk.
 
@@ -46,6 +52,10 @@ cd torrz
 scripts/make-app.sh
 cp -R dist/Torrz.app /Applications/
 ```
+
+If another torrent app already opens magnet links, macOS keeps sending them there. Choose
+"Open Magnet Links with Torrz" in the palette (or the link at the bottom of the Add dialog,
+or `torrz ui default-app`) and confirm when macOS asks.
 
 The bundle contains the `torrz` command too, at `Torrz.app/Contents/MacOS/torrz`.
 
@@ -112,7 +122,29 @@ The full list is in the [CLI reference](docs/cli.md), or `torrz --help`.
 | Esc | Close the palette or dialog, then clear the search, then the selection |
 
 Click a row to select it, ⌘-click to add or remove one, ⇧-click to select a range, and
-double-click to show its files in Finder. Drop a `.torrent` file on the window to add it.
+double-click to show its files in Finder. Right-click a row (or select it and press Shift+F10)
+for its menu: Resume or Pause, Show Files, Reveal in Finder, Copy (name, info hash or magnet
+link), Category, Add Best Trackers and Remove. Each item runs the `torrz` line it names.
+
+The Trackers tab has "Add Best Trackers" for the torrent it shows, and a box that gives every
+new torrent the best trackers as it is added (`torrz trackers auto on`). "Best" means:
+newTrackon's stable list (trackers with 95% uptime or better), without IPv6-only trackers if
+your Mac has no IPv6, each probed from here with a real UDP handshake or HTTP request.
+Silent ones are dropped, each host keeps its fastest address, and the fastest 20 are kept.
+The ranking is reused for six hours; "Rank the Public Trackers Again" in the palette, or
+`torrz trackers best --refresh`, redoes it.
+
+librqbit fixes a torrent's trackers when it starts, so giving a running torrent more means
+adding it again with them. Torrz keeps its files, its file choices, whether it was paused and
+its resume data, so it comes back after a spot check rather than a full re-check. Its
+upload count starts again from zero. Drop a `.torrent` file on the window to add it.
+When the Add dialog holds a `.torrent` file, "Move the .torrent file to the Trash" sends it
+there once it is added; the next Add dialog remembers the choice.
+
+The folder button in the toolbar watches a folder (`torrz watch <dir>`): each `.torrent`
+file that lands in it is added, and moved to the Trash if you tick the box. Files already in
+the folder are left alone. While a folder is watched, the status bar says so; click it to
+change or stop it.
 Closing the window leaves the torrents running; quit from the palette or with
 `torrz ui window quit`.
 
@@ -133,7 +165,7 @@ from the palette ("App Icon") or with `torrz ui icon auto|light|dark`.
 | What | Where |
 |---|---|
 | Downloads | `~/Downloads` |
-| Settings (limits, categories, icon) | `config.json` in the data folder |
+| Settings (limits, categories, icon, watched folder) | `config.json` in the data folder |
 | Torrent list and resume data | `session/` in the data folder |
 | Command socket | `torrz.sock` in the data folder |
 
@@ -149,8 +181,8 @@ writes `config.json`.
 - **BitTorrent v2**, and piece picking other than in order. Both are librqbit's limits.
 - **Settings:** the download folder (`~/Downloads`) and the listening port (51413) are
   fixed. `torrz add --dir` saves one torrent elsewhere.
-- **In the window:** column resizing, a right-click menu on rows, a tray icon, and opening
-  a `.torrent` by double-clicking it in Finder.
+- **In the window:** column resizing, a tray icon, and opening a `.torrent` by
+  double-clicking it in Finder.
 - **A forced light or dark icon** shows only while Torrz runs; when it is quit, macOS
   draws the version that matches the system.
 

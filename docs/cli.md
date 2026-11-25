@@ -91,7 +91,7 @@ One torrent with its files, its connected peers and how many pieces it has. With
 bytes done, whether it is included), `peers`, `pieces_have` and `piece_map` (piece
 availability squeezed into at most 600 cells, each 0 to 255).
 
-### `torrz add <source> [--paused] [--dir <dir>] [--category <name>]`
+### `torrz add <source> [--paused] [--dir <dir>] [--category <name>] [--trash]`
 
 Adds a magnet link, an http(s) URL of a `.torrent`, or the path of a `.torrent` file. Quote
 magnet links: they contain `&`.
@@ -101,9 +101,13 @@ magnet links: they contain `&`.
 | `--paused` | Add it without starting it |
 | `--dir <dir>` | Save it there instead of the download folder |
 | `--category <name>` | File it under that category |
+| `--trash` | Move the `.torrent` file to the Trash once it is added. Refused for a magnet link or a URL |
 
 Files already in the folder are checked and kept, so adding a torrent you partly have
-resumes it. `data` is `{"id": N}`.
+resumes it. `data` is `{"id": N, "trashed": true|false}`. If the torrent is added but the
+file can't be moved to the Trash, the command still succeeds and the message says why.
+
+The app reads the path, so give it absolute (or starting with `~/`).
 
 ### `torrz pause <targets…>` and `torrz resume <targets…>` (alias `start`)
 
@@ -130,6 +134,53 @@ a torrent is in them; there is nothing to create first.
 
 Shows the torrent's files in Finder (or the system's file manager) and prints their path.
 
+### `torrz watch [<dir>] [--off] [--trash on|off]`
+
+Watches a folder: every `.torrent` file that arrives in it is added, as `torrz add` would
+add it, within a couple of seconds. The files already in the folder when you start watching
+it are left alone. With `--trash on`, each file goes to the Trash once it is added; with
+`--trash off` it stays, and Torrz remembers it so it isn't added again. `--off` stops
+watching. With no arguments it only reports what is watched.
+
+```sh
+torrz watch ~/Downloads --trash on
+torrz watch --trash off            # keep the folder, change what happens to the files
+torrz watch --off
+```
+
+`data` is `{"dir": "/Users/you/Downloads", "trash": true}` (`dir` is `null` when nothing is
+watched). Adds made by the watched folder show in the Log tab as coming from `watch`.
+
+### `torrz trackers best [--refresh]`
+
+The best public trackers, fastest first, as `{"url", "ms"}` objects in `data`: newTrackon's
+stable list, probed from this machine (a UDP handshake for `udp://`, a request to the
+announce URL for `http(s)://`), with the silent ones dropped and at most 20 kept, one per
+host. The ranking is kept for six hours; `--refresh` probes again. The demo answers with a
+made-up list and never touches the network.
+
+```
+$ torrz trackers best
+   40 ms  udp://tracker.willy.pro:6969/announce
+   87 ms  udp://tracker.cn.nyaa.net:6969/announce
+  …
+```
+
+### `torrz trackers add <targets…> [--url <url>]…`
+
+Gives torrents the best public trackers, or the `--url` ones instead. A tracker whose host a
+torrent already has is skipped, and private torrents are skipped (they may only use their
+own tracker). `data` lists each torrent as `{"id", "now", "added"}`: the real engine adds a
+torrent again to change its trackers, and `now` is its id afterwards. Its files, file
+choices, paused state and resume data carry over.
+
+### `torrz trackers auto [on|off]`
+
+Whether each new torrent gets the best public trackers as it is added; with no argument it
+toggles. A `.torrent` file marked private, or a magnet link whose tracker carries a passkey,
+keeps only its own. A torrent added from an http(s) URL keeps its own too, since whether it is
+private isn't known until librqbit has downloaded it.
+
 ## Session
 
 ### `torrz stats`
@@ -147,7 +198,10 @@ the listening port, the download folder and its free space.
   "dht_nodes": 412,
   "port": 51413,
   "free_disk": 871878361088,
-  "download_dir": "~/Downloads"
+  "download_dir": "~/Downloads",
+  "watch_dir": null,
+  "watch_trash": false,
+  "auto_trackers": false
 }
 ```
 
@@ -188,6 +242,7 @@ lines, the toast, the icon style, and the last twenty log lines.
   "palette": null,
   "toast": null,
   "icon": "auto",
+  "magnet_default": false,
   "demo": true,
   "log": [
     { "time": "02:19:33", "from": "cli", "command": "torrz ui select 1", "result": "selected 1 torrent", "ok": true }
@@ -213,6 +268,8 @@ lines, the toast, the icon style, and the last twenty log lines.
 | `torrz ui inspector [on\|off]` | Shows, hides or toggles the inspector |
 | `torrz ui icon <style>` | The Dock icon while Torrz runs: `auto` (follows the system), `light` or `dark` |
 | `torrz ui window <action>` | `show`, `hide` (torrents keep running), `minimize` or `quit` |
+| `torrz ui copy <what> <target>` | Copies a torrent's `name`, `hash` or `magnet` link to the clipboard; `data` is the text |
+| `torrz ui default-app` | Asks macOS to open magnet links with Torrz. macOS asks you to confirm, and the answer arrives as a toast. `magnet_default` in `torrz ui state` says whether it does (`null` when Torrz isn't running from its app bundle) |
 
 ### Command palette
 
@@ -226,18 +283,19 @@ lines, the toast, the icon style, and the last twenty log lines.
 
 | Command | Does |
 |---|---|
-| `torrz ui dialog <name>` | Opens `add`, `remove` or `limits`; `none` closes whichever is open. `remove` needs a selection |
+| `torrz ui dialog <name>` | Opens `add`, `remove`, `limits` or `watch`; `none` closes whichever is open. `remove` needs a selection |
 | `torrz ui field <name> <value>` | Sets a field of the open dialog (table below) |
 | `torrz ui confirm` | Presses the dialog's main button |
 | `torrz ui cancel` | Closes the palette if it is open, otherwise the dialog |
 
 | Dialog | Fields |
 |---|---|
-| `add` | `source` (text), `paused` (`on` or `off`) |
+| `add` | `source` (text), `paused` (`on` or `off`), `trash` (`on` or `off`; used only when `source` is a `.torrent` file) |
 | `remove` | `delete-files` (`on` or `off`) |
 | `limits` | `down`, `up` (a rate, or empty for none) |
+| `watch` | `dir` (a folder, or empty to stop watching), `trash` (`on` or `off`) |
 
-A dialog is the long way round: `torrz add`, `torrz rm` and `torrz limit` do the same work
+A dialog is the long way round: `torrz add`, `torrz rm`, `torrz limit` and `torrz watch` do the same work
 directly. The dialog commands exist so a script can drive the window exactly as a person
 would, for demos and tests.
 
