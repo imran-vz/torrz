@@ -118,7 +118,7 @@ fn print(cmd: &Command, r: &Response) {
                 if !d.peers.is_empty() {
                     println!("  peers:");
                     for p in d.peers.iter().take(12) {
-                        println!("    {:<40} {:<22} down {:>9}  up {:>9}", p.addr, p.client, size(p.downloaded), size(p.uploaded));
+                        println!("    {:<40} {:<22} {:<4} ↓ {:>11} ({:>9})  ↑ {:>11} ({:>9})", p.addr, p.client, p.kind, speed(p.down), size(p.downloaded), speed(p.up), size(p.uploaded));
                     }
                 }
             }

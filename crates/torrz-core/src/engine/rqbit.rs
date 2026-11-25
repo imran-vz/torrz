@@ -1,10 +1,11 @@
 //! The real engine: a `librqbit` session on its own tokio runtime. Every method blocks the calling
 //! thread, so none of them may be called from the UI thread.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::num::NonZeroU32;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
 use anyhow::Context;
 use librqbit::api::TorrentIdOrHash;
@@ -19,6 +20,36 @@ pub struct RqbitEngine {
     download_dir: PathBuf,
     /// Where librqbit keeps each torrent's `.torrent` and resume bitfield.
     session_dir: PathBuf,
+    /// The inspected torrent's peers as last seen, to turn their byte counts into speeds.
+    peer_samples: Mutex<HashMap<(u64, String), PeerSample>>,
+}
+
+/// A peer's byte counts when last measured, and the speeds worked out then.
+struct PeerSample {
+    at: Instant,
+    fetched: u64,
+    uploaded: u64,
+    down: u64,
+    up: u64,
+}
+
+/// librqbit counts bytes per peer but not speed: the speed is the change since the last
+/// sample. A sample under half a second old keeps the speed it had, so a second snapshot taken
+/// close behind another (a `torrz show`) doesn't read as a stall.
+fn measure_peers(samples: &Mutex<HashMap<(u64, String), PeerSample>>, id: u64, peers: &mut [Peer]) {
+    let mut g = samples.lock().unwrap_or_else(|e| e.into_inner());
+    let now = Instant::now();
+    g.retain(|(t, addr), _| *t == id && peers.iter().any(|p| &p.addr == addr));
+    for p in peers {
+        let s = g.entry((id, p.addr.clone())).or_insert(PeerSample { at: now, fetched: p.downloaded, uploaded: p.uploaded, down: 0, up: 0 });
+        let dt = now.duration_since(s.at).as_secs_f64();
+        if dt >= 0.5 {
+            s.down = (p.downloaded.saturating_sub(s.fetched) as f64 / dt) as u64;
+            s.up = (p.uploaded.saturating_sub(s.uploaded) as f64 / dt) as u64;
+            (s.at, s.fetched, s.uploaded) = (now, p.downloaded, p.uploaded);
+        }
+        (p.down, p.up) = (s.down, s.up);
+    }
 }
 
 pub struct RqbitOptions {
@@ -51,7 +82,7 @@ impl RqbitEngine {
             ..Default::default()
         };
         let session: Arc<Session> = rt.block_on(Session::new_with_opts(o.download_dir.clone(), opts)).context("cannot start the torrent session")?;
-        Ok(Self { rt, api: Api::new(session, None), download_dir: o.download_dir, session_dir })
+        Ok(Self { rt, api: Api::new(session, None), download_dir: o.download_dir, session_dir, peer_samples: Mutex::default() })
     }
 
     fn id(id: u64) -> TorrentIdOrHash {
@@ -152,11 +183,27 @@ impl Engine for RqbitEngine {
                 .map(|p| {
                     p.peers
                         .into_iter()
-                        .map(|(addr, s)| Peer { addr, client: s.client_name.unwrap_or_default(), state: s.state.to_owned(), downloaded: s.counters.fetched_bytes, uploaded: s.counters.uploaded_bytes })
+                        .map(|(addr, s)| {
+                            let pieces = s.counters.downloaded_and_checked_pieces;
+                            Peer {
+                                addr,
+                                client: s.client_name.unwrap_or_default(),
+                                state: s.state.to_owned(),
+                                downloaded: s.counters.fetched_bytes,
+                                uploaded: s.counters.uploaded_bytes,
+                                kind: s.conn_kind.map(|k| k.to_string()).unwrap_or_default(),
+                                down: 0,
+                                up: 0,
+                                pieces,
+                                piece_ms: if pieces == 0 { 0 } else { s.counters.total_piece_download_ms / pieces as u64 },
+                            }
+                        })
                         .collect()
                 })
                 .unwrap_or_default();
-            peers.sort_by(|a, b| b.downloaded.cmp(&a.downloaded).then_with(|| a.addr.cmp(&b.addr)));
+            measure_peers(&self.peer_samples, id, &mut peers);
+            // The fastest now first, then the ones that gave the most.
+            peers.sort_by(|a, b| b.down.cmp(&a.down).then(b.downloaded.cmp(&a.downloaded)).then_with(|| a.addr.cmp(&b.addr)));
             let (piece_map, pieces_have) = match self.api.api_dump_haves(Self::id(id)) {
                 Ok((bf, total)) => {
                     let total = total as usize;
@@ -275,7 +322,32 @@ fn magnet_tracker_urls(magnet: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{Duration, Instant};
+    use std::time::Duration;
+
+    fn peer(addr: &str, downloaded: u64, uploaded: u64) -> Peer {
+        Peer { addr: addr.into(), client: String::new(), state: "live".into(), downloaded, uploaded, kind: "tcp".into(), down: 0, up: 0, pieces: 0, piece_ms: 0 }
+    }
+
+    #[test]
+    fn peer_speeds_come_from_the_bytes_between_samples() {
+        let samples = Mutex::default();
+        let mut ps = [peer("a:1", 1_000, 100)];
+        measure_peers(&samples, 1, &mut ps);
+        assert_eq!((ps[0].down, ps[0].up), (0, 0), "one sample is no speed yet");
+        // Pretend the first sample is a second old.
+        samples.lock().unwrap().get_mut(&(1, "a:1".to_owned())).unwrap().at -= Duration::from_secs(1);
+        let mut ps = [peer("a:1", 501_000, 50_100), peer("b:2", 7, 7)];
+        measure_peers(&samples, 1, &mut ps);
+        assert!((490_000..=500_000).contains(&ps[0].down), "{}", ps[0].down);
+        assert!((49_000..=50_000).contains(&ps[0].up), "{}", ps[0].up);
+        // Straight after, the speed holds rather than reading as a stall.
+        let mut again = [peer("a:1", 501_000, 50_100)];
+        measure_peers(&samples, 1, &mut again);
+        assert_eq!(again[0].down, ps[0].down);
+        // Another torrent's peers replace these.
+        measure_peers(&samples, 2, &mut [peer("c:3", 0, 0)]);
+        assert_eq!(samples.lock().unwrap().len(), 1);
+    }
 
     fn wait_complete(e: &RqbitEngine, id: u64) -> Torrent {
         let start = Instant::now();

@@ -342,6 +342,10 @@ pub struct State {
     pub magnet_default: Option<bool>,
     /// The add dialog's last "move to the Trash" choice, which the next one starts with.
     pub trash_added: bool,
+    /// The inspected torrent's piece map one snapshot ago, and a count of the snapshots that
+    /// changed it: the Pieces tab flashes what arrived in between.
+    pub pieces_before: Vec<u8>,
+    pub pieces_generation: u64,
 }
 
 impl State {
@@ -371,6 +375,8 @@ impl State {
             icon: IconStyle::Auto,
             magnet_default: crate::handler::magnet_is_default(),
             trash_added: false,
+            pieces_before: Vec::new(),
+            pieces_generation: 0,
         };
         s.icon = IconStyle::parse(&s.backend.app_icon()).unwrap_or(IconStyle::Auto);
         let snap = s.backend.snapshot(None);
@@ -389,6 +395,20 @@ impl State {
     }
 
     pub fn set_snapshot(&mut self, snap: Snapshot) {
+        let old = self.snap.detail.as_ref().map(|d| (d.id, &d.piece_map));
+        if let Some(new) = snap.detail.as_ref() {
+            match old {
+                // The same torrent moved on: what changed is what just arrived.
+                Some((id, map)) if id == new.id && map.len() == new.piece_map.len() => {
+                    if *map != new.piece_map {
+                        self.pieces_before = map.clone();
+                        self.pieces_generation += 1;
+                    }
+                }
+                // Another torrent, or its first map: nothing has just arrived.
+                _ => self.pieces_before = new.piece_map.clone(),
+            }
+        }
         self.snap = snap;
         let before = self.selected.len();
         let torrents = &self.snap.torrents;

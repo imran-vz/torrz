@@ -314,3 +314,40 @@ fn trackers_and_copies_work_from_the_window() {
     let hash = rt.state.torrent(2).unwrap().hash.clone();
     assert_eq!(copied, Some(format!("magnet:?xt=urn:btih:{hash}&dn=Sintel.2010.4K.OpenMovie.mkv")));
 }
+
+#[test]
+fn the_peers_tab_ranks_by_speed_and_says_where_the_download_comes_from() {
+    let mut rt = runtime();
+    click(&mut rt, "torrent-1");
+    click(&mut rt, "torrz ui tab peers");
+    assert!(rt.find("peer-summary").is_some());
+    let d = rt.state.snap.detail.as_ref().expect("detail");
+    let fastest = d.peers.iter().map(|p| p.down).max().unwrap();
+    assert!(fastest > 0, "the demo's peers have speeds");
+    assert!(d.peers.iter().any(|p| p.kind == "tcp") && d.peers.iter().any(|p| p.kind == "utp"));
+}
+
+#[test]
+fn the_piece_map_remembers_what_just_arrived() {
+    let mut rt = runtime();
+    click(&mut rt, "torrent-1");
+    click(&mut rt, "torrz ui tab pieces");
+    assert!(rt.find("piece-map").is_some() && rt.find("piece-tile-0").is_some());
+    let generation = rt.state.pieces_generation;
+    let mut snap = rt.state.snap.clone();
+    let map = &mut snap.detail.as_mut().unwrap().piece_map;
+    let was = map.clone();
+    let i = map.iter().position(|v| *v < 255).unwrap();
+    map[i] = 255;
+    rt.update(move |s, _| s.set_snapshot(snap));
+    settle(&mut rt);
+    assert_eq!(rt.state.pieces_generation, generation + 1);
+    assert_eq!(rt.state.pieces_before, was, "the map as it was, for the flash");
+    let tile = format!("piece-new-{}-{}", generation + 1, i / 10);
+    assert!(rt.find(&tile).is_some(), "the cell that filled flashes ({tile})");
+
+    // The same map again changes nothing.
+    let same = rt.state.snap.clone();
+    rt.update(move |s, _| s.set_snapshot(same));
+    assert_eq!(rt.state.pieces_generation, generation + 1);
+}

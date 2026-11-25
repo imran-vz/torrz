@@ -46,6 +46,10 @@ pub fn spec() -> AppSpec<State> {
                 scene_select(s);
                 s.tab = state::Tab::Files;
             }),
+            ("peers", |s| {
+                scene_select(s);
+                s.tab = state::Tab::Peers;
+            }),
             ("trackers", |s| {
                 scene_select(s);
                 s.tab = state::Tab::Trackers;

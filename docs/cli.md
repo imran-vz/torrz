@@ -91,6 +91,12 @@ One torrent with its files, its connected peers and how many pieces it has. With
 bytes done, whether it is included), `peers`, `pieces_have` and `piece_map` (piece
 availability squeezed into at most 600 cells, each 0 to 255).
 
+Each peer has `addr`, `client`, `state`, `kind` (`tcp`, `utp` or `socks`), `downloaded` and
+`uploaded` (bytes so far), `down` and `up` (bytes a second, measured between snapshots, so
+0 on the first look), `pieces` (pieces it gave that passed their hash check) and `piece_ms`
+(the average time one took). Peers are listed fastest first. librqbit doesn't report a
+peer's own progress, so Torrz can't tell seeds from other downloaders.
+
 ### `torrz add <source> [--paused] [--dir <dir>] [--category <name>] [--trash]`
 
 Adds a magnet link, an http(s) URL of a `.torrent`, or the path of a `.torrent` file. Quote

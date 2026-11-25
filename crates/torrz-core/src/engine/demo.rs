@@ -187,10 +187,29 @@ impl Engine for DemoEngine {
                 peers: if s.t.peers_live == 0 {
                     Vec::new()
                 } else {
-                    [("185.125.190.59:6881", "µTorrent 3.6", 4_100), ("91.189.95.21:51413", "qBittorrent 5.2", 3_600), ("[2a01:4f8:c17::2]:6881", "Transmission 4.1", 2_900), ("84.17.46.201:42000", "libtorrent 2.1", 2_200), ("203.0.113.77:4240", "rqbit 9.1", 1_400), ("198.51.100.4:6889", "qBittorrent 5.1", 1_100)]
+                    // Each peer's share of the torrent's traffic, so the numbers add up and move.
+                    let swarm = [("185.125.190.59:6881", "µTorrent 3.6", 4_100u64), ("91.189.95.21:51413", "qBittorrent 5.2", 3_600), ("[2a01:4f8:c17::2]:6881", "Transmission 4.1", 2_900), ("84.17.46.201:42000", "libtorrent 2.1", 2_200), ("203.0.113.77:4240", "rqbit 9.1", 1_400), ("198.51.100.4:6889", "qBittorrent 5.1", 1_100)];
+                    let shown = &swarm[..swarm.len().min(s.t.peers_live as usize)];
+                    let weight: u64 = shown.iter().map(|p| p.2).sum::<u64>().max(1);
+                    let share = |b: u64, k: u64| (b as u128 * k as u128 / weight as u128) as u64;
+                    shown
                         .iter()
-                        .take(s.t.peers_live as usize)
-                        .map(|(a, c, k)| Peer { addr: (*a).into(), client: (*c).into(), state: "live".into(), downloaded: k * KB * 190, uploaded: k * KB * 12 })
+                        .enumerate()
+                        .map(|(i, (a, c, k))| {
+                            let downloaded = share(s.t.done, *k);
+                            Peer {
+                                addr: (*a).into(),
+                                client: (*c).into(),
+                                state: "live".into(),
+                                downloaded,
+                                uploaded: share(s.t.uploaded, *k),
+                                kind: if i % 3 == 1 { "tcp" } else { "utp" }.into(),
+                                down: share(s.t.down, *k),
+                                up: share(s.t.up, *k),
+                                pieces: (downloaded / (2 * MB)) as u32,
+                                piece_ms: 240 + (k % 7) * 170,
+                            }
+                        })
                         .collect()
                 },
                 pieces_have: have as u32,

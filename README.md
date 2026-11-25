@@ -18,7 +18,9 @@ window shows you the command for what you just clicked. The window is drawn with
 ## Features
 
 - **A proper desktop window.** A source list with filters, categories and trackers; a
-  sortable table; an inspector with files, peers, trackers, a piece map and a speed graph.
+  sortable table; an inspector with files, peers (ranked by live speed, with a bar of where
+  the download is coming from), trackers, a dithered piece map that animates as pieces
+  arrive, and a speed graph.
 - **A command for everything.** Selecting a row, switching a tab, opening a dialog and
   ticking a checkbox each have a `torrz` line. A test fails the build if a control is added
   without one.

@@ -98,6 +98,19 @@ pub struct Peer {
     pub state: String,
     pub downloaded: u64,
     pub uploaded: u64,
+    /// `tcp`, `utp` or `socks`; empty while it isn't connected.
+    #[serde(default)]
+    pub kind: String,
+    /// Bytes a second, from and to this peer, measured between snapshots.
+    #[serde(default)]
+    pub down: u64,
+    #[serde(default)]
+    pub up: u64,
+    /// Pieces it gave us that passed their hash check, and how long one took on average.
+    #[serde(default)]
+    pub pieces: u32,
+    #[serde(default)]
+    pub piece_ms: u64,
 }
 
 /// The selected torrent's parts, fetched only for the torrent the inspector shows.

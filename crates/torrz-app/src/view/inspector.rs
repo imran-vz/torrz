@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 
 use rune::{El, ScrollSpec, Shape, canvas, col, el, row, text};
 use torrz_core::model::{eta, size, speed};
-use torrz_core::{Command, Detail, Torrent, Ui};
+use torrz_core::{Command, Detail, Peer, Torrent, TorrentState, Ui};
 
 use super::{act, bar_color, ui};
 use crate::state::{HISTORY, Origin, State, Tab};
@@ -199,12 +199,81 @@ fn files(s: &State) -> El {
     col().w_full().grow(1.0).min_h(0.0).child(list_head(&[("", Some(13.0), false), ("File", None, false), ("Progress", Some(120.0), false), ("", Some(44.0), true), ("Size", Some(72.0), true)])).child(list.scroll(ScrollSpec::default()).grow(1.0).min_h(0.0))
 }
 
+/// The shade of the `rank`th biggest source in the "where it comes from" bar.
+fn source_shade(rank: usize) -> rune::Color {
+    t::BLUE.alpha([1.0, 0.78, 0.62, 0.5, 0.4, 0.32][rank.min(5)])
+}
+
+/// Where the download is coming from: one segment a peer, by its share of what arrives now (or,
+/// when nothing is arriving, of what it has given), the biggest first.
+fn sources(peers: &[Peer]) -> El {
+    let now: u64 = peers.iter().map(|p| p.down).sum();
+    let by = |p: &Peer| if now > 0 { p.down } else { p.downloaded };
+    let total: u64 = peers.iter().map(by).sum();
+    let mut bar = row().w(300.0).h(8.0).radius(4.0).clip_rounded(4.0).gap(1.0).fill(t::TRACK);
+    if total == 0 {
+        return bar;
+    }
+    let mut ranked: Vec<&Peer> = peers.iter().filter(|p| by(p) > 0).collect();
+    ranked.sort_by_key(|p| std::cmp::Reverse(by(p)));
+    let shown = ranked.len().min(6);
+    for (i, p) in ranked[..shown].iter().enumerate() {
+        let share = by(p) as f32 / total as f32;
+        let who = if p.client.is_empty() { p.addr.clone() } else { format!("{} · {}", p.client, p.addr) };
+        bar = bar.child(el().w_frac(share).h_full().fill(source_shade(i)).help(format!("{who}: {:.0}%", share * 100.0)));
+    }
+    let rest: u64 = ranked[shown..].iter().map(|p| by(p)).sum();
+    if rest > 0 {
+        bar = bar.child(el().w_frac(rest as f32 / total as f32).h_full().fill(t::GREY).help(format!("{} more peers", ranked.len() - shown)));
+    }
+    bar
+}
+
+fn state_dot(state: &str) -> rune::Color {
+    match state {
+        "live" => t::GREEN,
+        "connecting" | "queued" => t::AMBER,
+        _ => t::GREY,
+    }
+}
+
 fn peers(s: &State) -> El {
     let Some(tor) = s.inspected() else { return placeholder("Select a torrent to see its peers.") };
     let d = s.snap.detail.as_ref().filter(|d| d.id == tor.id);
     let Some(d) = d.filter(|d| !d.peers.is_empty()) else { return placeholder(if tor.peers_seen == 0 { "No peers yet." } else { "Not connected to any peers right now." }) };
+    let mut ps: Vec<&Peer> = d.peers.iter().collect();
+    ps.sort_by(|a, b| b.down.cmp(&a.down).then(b.downloaded.cmp(&a.downloaded)).then_with(|| a.addr.cmp(&b.addr)));
+    let fastest = ps.iter().map(|p| p.down).max().unwrap_or(0).max(1);
+    let live = ps.iter().filter(|p| p.state == "live").count();
+    let kinds = |k: &str| ps.iter().filter(|p| p.kind == k).count();
+    let summary = [format!("{live} connected"), format!("{} seen", tor.peers_seen.max(ps.len() as u32)), format!("{} TCP", kinds("tcp")), format!("{} uTP", kinds("utp"))].join(" · ");
+    let head = row()
+        .key("peer-summary")
+        .w_full()
+        .h(34.0)
+        .px(16.0)
+        .gap(12.0)
+        .center_y()
+        .border_sides([0.0, 0.0, 1.0, 0.0], t::RULE)
+        .child(text(summary).font(t::SMALL).color(t::MUTED))
+        .child(el().grow(1.0))
+        .child(text(if ps.iter().any(|p| p.down > 0) { "Arriving from" } else { "Came from" }).font(t::SMALL).color(t::FAINT))
+        .child(sources(&d.peers));
+
+    let dim = |x: String, c| text(x).font(t::SMALL).color(c);
     let mut list = col().w_full();
-    for p in &d.peers {
+    for p in ps {
+        let badge = match p.kind.as_str() {
+            "" => el().w(34.0),
+            k => row().w(34.0).child(row().h(16.0).px(5.0).radius(4.0).center().fill(t::WHITE.alpha(0.08)).child(text(if k == "utp" { "uTP".to_owned() } else { k.to_uppercase() }).font(t::TINY_B).color(t::MUTED))),
+        };
+        let down = row()
+            .w(130.0)
+            .gap(8.0)
+            .center_y()
+            .child(el().grow(1.0).h(4.0).radius(2.0).fill(t::TRACK).child(el().h(4.0).w_frac(p.down as f32 / fastest as f32).radius(2.0).fill(t::BLUE)))
+            .child(row().w(68.0).justify_end().child(dim(if p.down == 0 { "—".into() } else { speed(p.down) }, t::BLUE_TEXT)));
+        let per_piece = if p.pieces == 0 { "—".to_owned() } else { format!("{:.1} s", p.piece_ms as f32 / 1000.0) };
         list = list.child(
             row()
                 .w_full()
@@ -212,14 +281,24 @@ fn peers(s: &State) -> El {
                 .px(16.0)
                 .gap(12.0)
                 .center_y()
-                .child(text(p.addr.clone()).font(t::MONO).color(t::TEXT_2).w(250.0).truncate())
-                .child(text(if p.client.is_empty() { "—".to_owned() } else { p.client.clone() }).font(t::BODY).color(t::TEXT_2).grow(1.0).truncate())
-                .child(text(p.state.clone()).font(t::SMALL).color(t::MUTED).w(80.0))
-                .child(row().w(90.0).justify_end().child(text(size(p.downloaded)).font(t::SMALL).color(t::BLUE_TEXT)))
-                .child(row().w(90.0).justify_end().child(text(size(p.uploaded)).font(t::SMALL).color(t::GREEN_TEXT))),
+                .hover(t::HOVER)
+                .child(el().size(7.0, 7.0).radius(3.5).fill(state_dot(&p.state)).help(p.state.clone()))
+                .child(text(p.addr.clone()).font(t::MONO).color(t::TEXT_2).w(220.0).truncate().selectable(true))
+                .child(text(if p.client.is_empty() { "—".to_owned() } else { p.client.clone() }).font(t::BODY).color(t::TEXT_2).grow(1.0).min_w(0.0).truncate())
+                .child(badge)
+                .child(down)
+                .child(row().w(68.0).justify_end().child(dim(if p.up == 0 { "—".into() } else { speed(p.up) }, t::GREEN_TEXT)))
+                .child(row().w(70.0).justify_end().child(dim(size(p.downloaded), t::TEXT_2)))
+                .child(row().w(56.0).justify_end().child(dim(per_piece, t::MUTED)).help("Average time a piece from this peer took")),
         );
     }
-    col().w_full().grow(1.0).min_h(0.0).child(list_head(&[("Address", Some(250.0), false), ("Client", None, false), ("State", Some(80.0), false), ("Downloaded", Some(90.0), true), ("Uploaded", Some(90.0), true)])).child(list.scroll(ScrollSpec::default()).grow(1.0).min_h(0.0))
+    col()
+        .w_full()
+        .grow(1.0)
+        .min_h(0.0)
+        .child(head)
+        .child(list_head(&[("", Some(7.0), false), ("Address", Some(220.0), false), ("Client", None, false), ("", Some(34.0), false), ("Down", Some(130.0), true), ("Up", Some(68.0), true), ("Got", Some(70.0), true), ("Piece", Some(56.0), true)]))
+        .child(list.scroll(ScrollSpec::default()).grow(1.0).min_h(0.0))
 }
 
 fn trackers(s: &State) -> El {
@@ -250,12 +329,8 @@ fn trackers(s: &State) -> El {
 fn pieces(s: &State) -> El {
     let Some(tor) = s.inspected() else { return placeholder("Select a torrent to see its pieces.") };
     let Some(d) = s.snap.detail.as_ref().filter(|d| d.id == tor.id && !d.piece_map.is_empty()) else { return placeholder("No piece map yet.") };
-    let ink = bar_color(tor.state);
-    let mut grid = row().w_full().flex_wrap().gaps(2.0, 2.0);
-    for v in &d.piece_map {
-        let a = *v as f32 / 255.0;
-        grid = grid.child(el().size(9.0, 9.0).radius(1.5).fill(if a <= 0.0 { t::TRACK } else { ink.alpha(0.25 + 0.75 * a) }));
-    }
+    // Only a torrent that is downloading has pieces in flight; a paused one holds still.
+    let grid = super::pieces::piece_map(&d.piece_map, &s.pieces_before, bar_color(tor.state), s.pieces_generation, tor.state == TorrentState::Downloading);
     col()
         .w_full()
         .grow(1.0)

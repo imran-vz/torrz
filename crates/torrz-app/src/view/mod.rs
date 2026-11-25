@@ -3,6 +3,7 @@
 mod inspector;
 pub mod menu;
 mod overlays;
+pub mod pieces;
 mod sidebar;
 mod table;
 
