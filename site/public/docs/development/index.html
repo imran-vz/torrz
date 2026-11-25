@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development · Torrz docs</title>
+<meta name="description" content="sh cargo build # debug binaries in target/debug ./target/debug/torrz open --demo # the window on a simulated swarm ./target/debug/torrz-app --demo # the…">
+<link rel="canonical" href="https://torrz.imran.codes/docs/development/">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Torrz">
+<meta property="og:title" content="Development · Torrz docs">
+<meta property="og:description" content="sh cargo build # debug binaries in target/debug ./target/debug/torrz open --demo # the window on a simulated swarm ./target/debug/torrz-app --demo # the…">
+<meta property="og:url" content="https://torrz.imran.codes/docs/development/">
+<meta property="og:image" content="https://torrz.imran.codes/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Torrz: every click is a command. An open-source BitTorrent client for macOS.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://torrz.imran.codes/og.png">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/vendor/oat/oat.min.css">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/vendor/oat/oat.min.js" defer></script>
+<script src="/assets/site.js" defer></script>
+<script>try{var t=localStorage.getItem("torrz-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body data-sidebar-layout>
+<header data-topnav>
+  <button data-sidebar-toggle class="ghost icon small" aria-label="Show the docs menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/icon.svg" alt="" width="28" height="28">Torrz</a>
+  <nav class="hstack topnav-links" aria-label="Main">
+    <a href="/#features" class="hide-sm">Features</a>
+    <a href="/docs/" aria-current="page">Docs</a>
+    <a href="/docs/cli/" class="hide-sm">CLI</a>
+    <a class="button ghost small" href="https://github.com/imran-vz/torrz" rel="noopener"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="hide-sm">GitHub</span></a>
+    <button class="ghost icon small theme-toggle" type="button" aria-label="Switch between light and dark"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 019.5 3.5a8.5 8.5 0 1011 11z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  </nav>
+</header>
+<aside data-sidebar aria-label="Docs">
+  <nav><ul><li><details open><summary>Guide</summary><ul><li><a href="/docs/">Getting started</a></li></ul></details></li><li><details open><summary>Reference</summary><ul><li><a href="/docs/cli/">CLI reference</a></li><li><a href="/docs/architecture/">Architecture</a></li></ul></details></li><li><details open><summary>Contributing</summary><ul><li><a href="/docs/development/" aria-current="page">Development</a></li><li><a href="https://github.com/imran-vz/torrz/blob/main/CONTRIBUTING.md" rel="noopener">Contributing guide<span class="text-lighter">↗</span></a></li><li><a href="https://github.com/imran-vz/torrz/blob/main/CHANGELOG.md" rel="noopener">Changelog<span class="text-lighter">↗</span></a></li></ul></details></li></ul></nav>
+</aside>
+<main>
+  <div class="docs-body">
+    <article class="prose">
+      <h1>Development</h1>
+<h2 id="build-and-run">Build and run<a class="anchor" href="#build-and-run" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-sh">cargo build                         # debug binaries in target/debug
+./target/debug/torrz open --demo    # the window on a simulated swarm
+./target/debug/torrz-app --demo     # the same, in the foreground with its output
+</code></pre>
+<p>The first build compiles Rune and librqbit and takes a few minutes. Use <code>--demo</code> while
+working on the interface: it needs no network and writes nothing.</p>
+<p>To keep a development copy away from your real torrents, give it its own data folder:</p>
+<pre><code class="language-sh">export TORRZ_HOME=/tmp/torrz-dev
+</code></pre>
+<p>Unix socket paths are limited to about 100 characters. If <code>TORRZ_HOME</code> is a long path, set
+<code>TORRZ_SOCK</code> to a short one as well.</p>
+<h2 id="test">Test<a class="anchor" href="#test" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-sh">cargo test          # everything
+cargo clippy --all-targets
+</code></pre>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Where</th>
+<th>What it covers</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>torrz-core</code> unit tests</td>
+<td>Rates and sizes, the demo engine, target resolution, limits, file selection, the socket, and every command round-tripping through its CLI line</td>
+</tr>
+<tr>
+<td><code>torrz-app/src/tests.rs</code></td>
+<td>The real window, headless: clicks, keys, dialogs, the palette, sorting, and the rule that every control has a command</td>
+</tr>
+</tbody></table></div>
+<p>The window tests build and lay out the real view but draw nothing, so they run in well
+under a second.</p>
+<p>One thing to know when writing them: an element that has just been mounted is still
+animating in and cannot be clicked yet. The <code>settle</code> helper in <code>tests.rs</code> advances the
+clock; use it (through <code>click</code>, <code>key</code> and <code>run</code>) after anything that opens a dialog or
+changes which controls exist.</p>
+<h2 id="see-the-window-without-opening-it">See the window without opening it<a class="anchor" href="#see-the-window-without-opening-it" aria-label="Link to this section">#</a></h2>
+<p>Debug builds take Rune&#39;s tooling flags, and the release build has them too (the <code>tooling</code>
+feature). They render with the same renderer as the window, on the frozen demo engine.</p>
+<pre><code class="language-sh">A=./target/debug/torrz-app
+$A --list-scenes
+$A --snap shot.png --scene palette --settle            # a PNG of a named state
+$A --snap shot.png --scene selected --size 900x600 --scale 2
+$A --tree tree.json --scene files --settle             # every element: key, role, rect, text
+</code></pre>
+<p>Scenes are named states for these snapshots, defined in <code>spec()</code> in
+<code>crates/torrz-app/src/main.rs</code>. Add one when you add a screen. The screenshots in
+<code>design/screens</code> are made this way.</p>
+<h2 id="add-a-command">Add a command<a class="anchor" href="#add-a-command" aria-label="Link to this section">#</a></h2>
+<p>Adding a control and adding a command are the same job. In order:</p>
+<ol>
+<li><strong><code>crates/torrz-core/src/command.rs</code>:</strong> add a variant to <code>Command</code> (or to <code>Ui</code> if it only
+moves the window), and its line in <code>to_cli</code>.</li>
+<li><strong><code>crates/torrz-core/src/cli.rs</code>:</strong> add the clap subcommand with doc comments (they are
+the <code>--help</code> text), map it in <code>into_parsed</code>, and add a case to the round-trip test.</li>
+<li><strong>Run it:</strong> an engine command goes in <code>Backend::try_exec</code>
+(<code>crates/torrz-core/src/backend.rs</code>); a window command goes in <code>apply_ui</code>
+(<code>crates/torrz-app/src/state.rs</code>).</li>
+<li><strong>Draw it:</strong> build the control with <code>act(element, command)</code>. If it belongs in the
+palette, add it to <code>palette_items</code>.</li>
+<li><strong>Print it:</strong> if its answer deserves more than its message, add a case to <code>print</code> in
+<code>crates/torrz-cli/src/main.rs</code>.</li>
+<li><strong>Document it</strong> in <code>docs/cli.md</code>.</li>
+</ol>
+<p><code>cargo test</code> will tell you if step 2 or 4 was missed.</p>
+<p>A handler must not call the engine or touch the disk: it runs on the UI thread. Return a
+<code>Command</code> and let <code>dispatch</code> route it.</p>
+<h2 id="the-icon">The icon<a class="anchor" href="#the-icon" aria-label="Link to this section">#</a></h2>
+<p>The icon is drawn by a script, not by hand, on a 48 by 48 pixel grid with ordered (Bayer)
+dithering.</p>
+<pre><code class="language-sh">scripts/make-icon.py              # every variant, into design/icons/
+scripts/make-icon.py classic      # and make that one the app&#39;s icon
+scripts/render-icons.sh           # then rasterise the PNGs the app embeds (needs Chrome)
+</code></pre>
+<p><code>make-icon.py classic</code> writes <code>assets/icon.svg</code> (light), <code>assets/icon-dark.svg</code>, and
+<code>assets/Torrz.icon</code>, an Icon Composer document holding both. <code>render-icons.sh</code> turns the two
+SVGs into <code>assets/icon-light.png</code> and <code>assets/icon-dark.png</code>, which <code>crates/torrz-app</code>
+embeds for the Dock icon. The PNGs are checked in, so a normal build needs neither script.</p>
+<h2 id="the-mac-app-bundle">The Mac app bundle<a class="anchor" href="#the-mac-app-bundle" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-sh">scripts/make-app.sh               # writes dist/Torrz.app
+</code></pre>
+<p>It builds both binaries in release mode, compiles <code>assets/Torrz.icon</code> with Xcode&#39;s <code>actool</code>
+into <code>Assets.car</code> (light, dark and tinted, which macOS 26 and later switch between) and a
+fallback <code>Torrz.icns</code>, writes <code>Info.plist</code> with the <code>magnet:</code> scheme, and signs the bundle.</p>
+<p>Signing is ad hoc unless you name an identity:</p>
+<pre><code class="language-sh">TORRZ_SIGN=&quot;Developer ID Application: Your Name (TEAMID)&quot; scripts/make-app.sh
+</code></pre>
+<p>The bundle is not notarised.</p>
+<h2 id="the-website">The website<a class="anchor" href="#the-website" aria-label="Link to this section">#</a></h2>
+<p><code>site/</code> holds the website: a static landing page and these docs, served by Cloudflare. The
+docs pages are made from the Markdown in <code>docs/</code>, so after changing a doc, rebuild:</p>
+<pre><code class="language-sh">cd site
+npm install            # once: the Markdown renderer
+npm run build          # writes site/public
+</code></pre>
+<p>Commit <code>site/public</code> with the change. The landing page is <code>site/src/index.html</code>. The site
+is built on <a href="https://oat.ink" rel="noopener">Oat</a>, a small classless UI library: it styles the semantic
+HTML and supplies the grid (<code>.row</code>, <code>.col-*</code>), cards, buttons, tables, tabs (<code>&lt;ot-tabs&gt;</code>)
+and the docs sidebar (<code>data-sidebar-layout</code>). Oat 1.1.0 is vendored in <code>site/public/vendor/oat</code>
+with its license; <code>site/public/assets/site.css</code> holds Torrz&#39;s theme (Oat&#39;s variables) and the
+few pieces Oat has no component for. Prefer an Oat component or class to new CSS. Screenshots in <code>site/public/screens/</code>
+come from <code>torrz-app --snap</code> (see above) at <code>--scale 2</code>, saved as WebP.</p>
+<p>The link preview card, <code>site/public/og.png</code>, is drawn as HTML in <code>site/og/og.html</code>; run
+<code>site/og/render.sh</code> after changing it (it uses headless Chrome).</p>
+<p>To deploy, sign in once with <code>npx wrangler login</code>, then run <code>npm run deploy</code> (build, then
+upload). <code>npx wrangler dev</code> serves the site locally first. Nothing runs on the server: the
+Worker named in <code>site/wrangler.jsonc</code> serves the files in <code>site/public</code> as they are.</p>
+<h2 id="updating-rune">Updating Rune<a class="anchor" href="#updating-rune" aria-label="Link to this section">#</a></h2>
+<p>Rune is pre-release and is used as a git dependency pinned to one revision of its <code>dev</code>
+branch. Cargo does not inherit a dependency&#39;s <code>[patch.crates-io]</code> entries, so the root
+<code>Cargo.toml</code> repeats Rune&#39;s own patch list at the same revision.</p>
+<p>To update:</p>
+<ol>
+<li>Pick a revision of <code>dev</code> and read Rune&#39;s <code>CHANGELOG.md</code> between the old one and it.</li>
+<li>Check Rune&#39;s root <code>Cargo.toml</code> at that revision for its current <code>[patch.crates-io]</code> list.</li>
+<li>Replace the revision everywhere in this repo&#39;s <code>Cargo.toml</code>: the <code>rune</code> dependency and
+every patch entry. They must all match.</li>
+<li><code>cargo test</code>, then look at a few <code>--snap</code> screenshots.</li>
+</ol>
+<p>Rune takes issues, not pull requests.</p>
+<h2 id="conventions">Conventions<a class="anchor" href="#conventions" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><strong>Comments say why</strong>, and say what the code does now. No history, no notes to reviewers.</li>
+<li><strong>Errors are sentences a person can act on</strong>: &quot;no torrent &quot;99&quot;&quot;, not &quot;not found&quot;.</li>
+<li><strong>No blocking on the UI thread</strong>, and no file access in views or handlers.</li>
+<li><strong>Everything the user can do is a <code>Command</code>.</strong> If you are reaching for a closure that
+changes state directly, it should be a command instead.</li>
+</ul>
+
+      <nav class="page-foot" aria-label="Pages">
+    <span><a href="/docs/architecture/">← Architecture</a></span>
+    <span><a href="https://github.com/imran-vz/torrz/blob/main/docs/development.md" rel="noopener">Edit this page on GitHub</a></span>
+  </nav>
+    </article>
+    <aside class="toc" aria-label="On this page"><nav><h2>On this page</h2><ul><li><a href="#build-and-run">Build and run</a></li><li><a href="#test">Test</a></li><li><a href="#see-the-window-without-opening-it">See the window without opening it</a></li><li><a href="#add-a-command">Add a command</a></li><li><a href="#the-icon">The icon</a></li><li><a href="#the-mac-app-bundle">The Mac app bundle</a></li><li><a href="#the-website">The website</a></li><li><a href="#updating-rune">Updating Rune</a></li><li><a href="#conventions">Conventions</a></li></ul></nav></aside>
+  </div>
+  <footer class="site-footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-6">
+        <a class="brand" href="/"><img src="/icon.svg" alt="" width="24" height="24">Torrz</a>
+        <p>A BitTorrent client where every button is also a command. MIT licensed. This site is built with <a href="https://oat.ink" rel="noopener">Oat</a>.</p>
+      </div>
+      <nav class="col-6 hstack gap-4" aria-label="Footer">
+        <a href="/docs/">Docs</a>
+        <a href="/docs/cli/">CLI reference</a>
+        <a href="https://github.com/imran-vz/torrz" rel="noopener">GitHub</a>
+        <a href="https://github.com/imran-vz/torrz/issues" rel="noopener">Issues</a>
+        <a href="https://github.com/imran-vz/torrz/blob/main/CHANGELOG.md" rel="noopener">Changelog</a>
+        <a href="https://github.com/imran-vz/torrz/blob/main/LICENSE" rel="noopener">License</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+</main>
+</body>
+</html>

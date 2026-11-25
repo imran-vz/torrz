@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://torrz.imran.codes/sitemap.xml

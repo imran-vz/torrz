@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getting started · Torrz docs</title>
+<meta name="description" content="Torrz is a desktop BitTorrent client in which every control is also a command. This page takes you from a clone to a running window, then through the…">
+<link rel="canonical" href="https://torrz.imran.codes/docs/">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Torrz">
+<meta property="og:title" content="Getting started · Torrz docs">
+<meta property="og:description" content="Torrz is a desktop BitTorrent client in which every control is also a command. This page takes you from a clone to a running window, then through the…">
+<meta property="og:url" content="https://torrz.imran.codes/docs/">
+<meta property="og:image" content="https://torrz.imran.codes/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Torrz: every click is a command. An open-source BitTorrent client for macOS.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://torrz.imran.codes/og.png">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/vendor/oat/oat.min.css">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/vendor/oat/oat.min.js" defer></script>
+<script src="/assets/site.js" defer></script>
+<script>try{var t=localStorage.getItem("torrz-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body data-sidebar-layout>
+<header data-topnav>
+  <button data-sidebar-toggle class="ghost icon small" aria-label="Show the docs menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/icon.svg" alt="" width="28" height="28">Torrz</a>
+  <nav class="hstack topnav-links" aria-label="Main">
+    <a href="/#features" class="hide-sm">Features</a>
+    <a href="/docs/" aria-current="page">Docs</a>
+    <a href="/docs/cli/" class="hide-sm">CLI</a>
+    <a class="button ghost small" href="https://github.com/imran-vz/torrz" rel="noopener"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="hide-sm">GitHub</span></a>
+    <button class="ghost icon small theme-toggle" type="button" aria-label="Switch between light and dark"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 019.5 3.5a8.5 8.5 0 1011 11z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  </nav>
+</header>
+<aside data-sidebar aria-label="Docs">
+  <nav><ul><li><details open><summary>Guide</summary><ul><li><a href="/docs/" aria-current="page">Getting started</a></li></ul></details></li><li><details open><summary>Reference</summary><ul><li><a href="/docs/cli/">CLI reference</a></li><li><a href="/docs/architecture/">Architecture</a></li></ul></details></li><li><details open><summary>Contributing</summary><ul><li><a href="/docs/development/">Development</a></li><li><a href="https://github.com/imran-vz/torrz/blob/main/CONTRIBUTING.md" rel="noopener">Contributing guide<span class="text-lighter">↗</span></a></li><li><a href="https://github.com/imran-vz/torrz/blob/main/CHANGELOG.md" rel="noopener">Changelog<span class="text-lighter">↗</span></a></li></ul></details></li></ul></nav>
+</aside>
+<main>
+  <div class="docs-body">
+    <article class="prose">
+      <h1>Getting started</h1>
+<p>Torrz is a desktop BitTorrent client in which every control is also a command. This page
+takes you from a clone to a running window, then through the everyday things: adding
+torrents, opening magnet links, watching a folder and driving it all from the terminal.</p>
+<h2 id="what-you-need">What you need<a class="anchor" href="#what-you-need" aria-label="Link to this section">#</a></h2>
+<ul>
+<li>macOS. Torrz is built and tested there. Linux should build but is untested, and Windows
+has no command line yet.</li>
+<li>A recent Rust toolchain (the project is built with Rust 1.99).</li>
+<li>Xcode, for the Mac app bundle: it compiles the light and dark icon.</li>
+</ul>
+<h2 id="install">Install<a class="anchor" href="#install" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-sh">git clone https://github.com/imran-vz/torrz
+cd torrz
+</code></pre>
+<p><strong>As a Mac app.</strong> This one has the icon and opens <code>magnet:</code> links.</p>
+<pre><code class="language-sh">scripts/make-app.sh
+cp -R dist/Torrz.app /Applications/
+</code></pre>
+<p>The bundle includes the <code>torrz</code> command at <code>Torrz.app/Contents/MacOS/torrz</code>. It is signed ad
+hoc, not notarised, so on another Mac you approve it the first time you open it.</p>
+<p><strong>As plain binaries</strong> on your <code>PATH</code>:</p>
+<pre><code class="language-sh">cargo install --path crates/torrz-app
+cargo install --path crates/torrz-cli
+</code></pre>
+<p>Install both: <code>torrz open</code> starts the <code>torrz-app</code> that sits beside it.</p>
+<h2 id="first-run">First run<a class="anchor" href="#first-run" aria-label="Link to this section">#</a></h2>
+<pre><code class="language-sh">torrz open           # the real engine, saving to ~/Downloads
+torrz open --demo    # a simulated swarm that touches neither the network nor the disk
+</code></pre>
+<p>The demo is the quickest way to look around: twelve torrents download, seed and pause, and
+every control works.</p>
+<h2 id="add-a-torrent">Add a torrent<a class="anchor" href="#add-a-torrent" aria-label="Link to this section">#</a></h2>
+<p>Press ⌘O, paste a magnet link or a URL, or choose a <code>.torrent</code> file. You can also drop a
+<code>.torrent</code> file on the window. When the source is a file, tick <strong>Move the .torrent file to
+the Trash</strong> to tidy up once it is added.</p>
+<p>From a terminal:</p>
+<pre><code class="language-sh">torrz add &#39;magnet:?xt=urn:btih:…&#39; --category &quot;Linux ISOs&quot;
+torrz add ~/Downloads/file.torrent --trash
+</code></pre>
+<h2 id="open-magnet-links-from-the-browser">Open magnet links from the browser<a class="anchor" href="#open-magnet-links-from-the-browser" aria-label="Link to this section">#</a></h2>
+<p>The app bundle registers <code>magnet:</code> links, but if another torrent client got there first,
+macOS keeps sending them to it. Choose <strong>Open Magnet Links with Torrz</strong> in the ⌘K palette
+(or the link at the bottom of the Add dialog, or run <code>torrz ui default-app</code>) and confirm when
+macOS asks. A link that arrives while the window is closed brings it back with the Add
+dialog filled in.</p>
+<h2 id="watch-a-folder">Watch a folder<a class="anchor" href="#watch-a-folder" aria-label="Link to this section">#</a></h2>
+<p>The folder button in the toolbar watches a folder for <code>.torrent</code> files and adds each one that
+arrives, moving it to the Trash afterwards if you like. Files already in the folder are left
+alone.</p>
+<pre><code class="language-sh">torrz watch ~/Downloads --trash on
+torrz watch --off
+</code></pre>
+<p>While a folder is watched, the status bar says so; click it to change or stop it.</p>
+<h2 id="better-connected-torrents">Better-connected torrents<a class="anchor" href="#better-connected-torrents" aria-label="Link to this section">#</a></h2>
+<p>Torrz can give a torrent the fastest public trackers: it takes
+<a href="https://newtrackon.com" rel="noopener">newTrackon</a>&#39;s list of trackers that stay up, probes each from your
+machine, and keeps the 20 that answer quickest. Use <strong>Add Best Trackers</strong> on the Trackers
+tab or in a row&#39;s right-click menu, or tick the box there to give every new torrent them.
+Private torrents are never touched.</p>
+<pre><code class="language-sh">torrz trackers best          # the ranking, fastest first
+torrz trackers add 1 2
+torrz trackers auto on
+</code></pre>
+<h2 id="drive-it-from-the-terminal">Drive it from the terminal<a class="anchor" href="#drive-it-from-the-terminal" aria-label="Link to this section">#</a></h2>
+<p>With the window open, anything you can click you can run:</p>
+<pre><code class="language-sh">torrz list
+torrz pause 1 2                    # ids, info hashes, `all` or `selected`
+torrz files 1 --skip 3             # don&#39;t download file 3
+torrz limit --down 12M --up none
+torrz ui filter downloading        # what the sidebar does
+torrz ui select 1                  # what clicking a row does
+torrz ui tab peers
+</code></pre>
+<p>Every command takes <code>--json</code> and exits non-zero when it fails, so it scripts cleanly:</p>
+<pre><code class="language-sh">torrz list --json | jq -r &#39;.data[] | select(.state == &quot;seeding&quot;) | .name&#39;
+</code></pre>
+<p>The <a href="/docs/cli/">CLI reference</a> has every command and the JSON it returns.</p>
+<h2 id="in-the-window">In the window<a class="anchor" href="#in-the-window" aria-label="Link to this section">#</a></h2>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>⌘K</td>
+<td>Open the command palette</td>
+</tr>
+<tr>
+<td>⌘O or ⌘N</td>
+<td>Add a torrent</td>
+</tr>
+<tr>
+<td>⌘F</td>
+<td>Search by name</td>
+</tr>
+<tr>
+<td>Space</td>
+<td>Pause or resume the selection</td>
+</tr>
+<tr>
+<td>⌫</td>
+<td>Remove the selection (asks first)</td>
+</tr>
+<tr>
+<td>↑ ↓</td>
+<td>Move the selection; with ⇧, extend it</td>
+</tr>
+<tr>
+<td>⌘A</td>
+<td>Select every row shown</td>
+</tr>
+<tr>
+<td>⌘1 … ⌘6</td>
+<td>Inspector tab: General, Files, Peers, Trackers, Pieces, Log</td>
+</tr>
+<tr>
+<td>⌘I</td>
+<td>Show or hide the inspector</td>
+</tr>
+<tr>
+<td>⌥⌘S</td>
+<td>Show or hide the sidebar</td>
+</tr>
+<tr>
+<td>⌘,</td>
+<td>Speed limits</td>
+</tr>
+<tr>
+<td>Esc</td>
+<td>Close the palette or dialog, then clear the search, then the selection</td>
+</tr>
+</tbody></table></div>
+<p>Click a row to select it, ⌘-click to add or remove one, ⇧-click to select a range, and
+double-click to show its files in Finder. Right-click a row for its menu: resume or pause,
+show files, reveal in Finder, copy the name, info hash or magnet link, category, add best
+trackers, and remove.</p>
+<p>Closing the window leaves the torrents running; quit from the palette or with
+<code>torrz ui window quit</code>.</p>
+<h2 id="where-things-are-kept">Where things are kept<a class="anchor" href="#where-things-are-kept" aria-label="Link to this section">#</a></h2>
+<div class="table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Downloads</td>
+<td><code>~/Downloads</code></td>
+</tr>
+<tr>
+<td>Settings (limits, categories, icon, watched folder, trackers)</td>
+<td><code>config.json</code> in the data folder</td>
+</tr>
+<tr>
+<td>Torrent list and resume data</td>
+<td><code>session/</code> in the data folder</td>
+</tr>
+<tr>
+<td>Command socket</td>
+<td><code>torrz.sock</code> in the data folder</td>
+</tr>
+</tbody></table></div>
+<p>The data folder is <code>~/Library/Application Support/Torrz</code> on macOS and
+<code>$XDG_DATA_HOME/torrz</code> (or <code>~/.local/share/torrz</code>) elsewhere. Set <code>TORRZ_HOME</code> to move it
+and <code>TORRZ_SOCK</code> to move only the socket.</p>
+
+      <nav class="page-foot" aria-label="Pages">
+    <span></span>
+    <span><a href="/docs/cli/">CLI reference →</a></span>
+  </nav>
+    </article>
+    <aside class="toc" aria-label="On this page"><nav><h2>On this page</h2><ul><li><a href="#what-you-need">What you need</a></li><li><a href="#install">Install</a></li><li><a href="#first-run">First run</a></li><li><a href="#add-a-torrent">Add a torrent</a></li><li><a href="#open-magnet-links-from-the-browser">Open magnet links from the browser</a></li><li><a href="#watch-a-folder">Watch a folder</a></li><li><a href="#better-connected-torrents">Better-connected torrents</a></li><li><a href="#drive-it-from-the-terminal">Drive it from the terminal</a></li><li><a href="#in-the-window">In the window</a></li><li><a href="#where-things-are-kept">Where things are kept</a></li></ul></nav></aside>
+  </div>
+  <footer class="site-footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-6">
+        <a class="brand" href="/"><img src="/icon.svg" alt="" width="24" height="24">Torrz</a>
+        <p>A BitTorrent client where every button is also a command. MIT licensed. This site is built with <a href="https://oat.ink" rel="noopener">Oat</a>.</p>
+      </div>
+      <nav class="col-6 hstack gap-4" aria-label="Footer">
+        <a href="/docs/">Docs</a>
+        <a href="/docs/cli/">CLI reference</a>
+        <a href="https://github.com/imran-vz/torrz" rel="noopener">GitHub</a>
+        <a href="https://github.com/imran-vz/torrz/issues" rel="noopener">Issues</a>
+        <a href="https://github.com/imran-vz/torrz/blob/main/CHANGELOG.md" rel="noopener">Changelog</a>
+        <a href="https://github.com/imran-vz/torrz/blob/main/LICENSE" rel="noopener">License</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+</main>
+</body>
+</html>

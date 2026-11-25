@@ -1,0 +1,14 @@
+{
+  "name": "torrz-site",
+  "private": true,
+  "description": "The Torrz website: a static landing page and docs built from ../docs.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "preview": "wrangler dev",
+    "deploy": "node build.mjs && wrangler deploy"
+  },
+  "devDependencies": {
+    "marked": "18.1.3"
+  }
+}

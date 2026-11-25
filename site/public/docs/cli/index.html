@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLI reference · Torrz docs</title>
+<meta name="description" content="torrz sends one command to the running app and prints its answer. The app has to be running: start it with torrz open. Apart from open, every command here…">
+<link rel="canonical" href="https://torrz.imran.codes/docs/cli/">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Torrz">
+<meta property="og:title" content="CLI reference · Torrz docs">
+<meta property="og:description" content="torrz sends one command to the running app and prints its answer. The app has to be running: start it with torrz open. Apart from open, every command here…">
+<meta property="og:url" content="https://torrz.imran.codes/docs/cli/">
+<meta property="og:image" content="https://torrz.imran.codes/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Torrz: every click is a command. An open-source BitTorrent client for macOS.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://torrz.imran.codes/og.png">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="64x64">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/vendor/oat/oat.min.css">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/vendor/oat/oat.min.js" defer></script>
+<script src="/assets/site.js" defer></script>
+<script>try{var t=localStorage.getItem("torrz-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body data-sidebar-layout>
+<header data-topnav>
+  <button data-sidebar-toggle class="ghost icon small" aria-label="Show the docs menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <a class="brand" href="/"><img src="/icon.svg" alt="" width="28" height="28">Torrz</a>
+  <nav class="hstack topnav-links" aria-label="Main">
+    <a href="/#features" class="hide-sm">Features</a>
+    <a href="/docs/">Docs</a>
+    <a href="/docs/cli/" class="hide-sm" aria-current="page">CLI</a>
+    <a class="button ghost small" href="https://github.com/imran-vz/torrz" rel="noopener"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span class="hide-sm">GitHub</span></a>
+    <button class="ghost icon small theme-toggle" type="button" aria-label="Switch between light and dark"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.5A8.5 8.5 0 019.5 3.5a8.5 8.5 0 1011 11z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+  </nav>
+</header>
+<aside data-sidebar aria-label="Docs">
+  <nav><ul><li><details open><summary>Guide</summary><ul><li><a href="/docs/">Getting started</a></li></ul></details></li><li><details open><summary>Reference</summary><ul><li><a href="/docs/cli/" aria-current="page">CLI reference</a></li><li><a href="/docs/architecture/">Architecture</a></li></ul></details></li><li><details open><summary>Contributing</summary><ul><li><a href="/docs/development/">Development</a></li><li><a href="https://github.com/imran-vz/torrz/blob/main/CONTRIBUTING.md" rel="noopener">Contributing guide<span class="text-lighter">↗</span></a></li><li><a href="https://github.com/imran-vz/torrz/blob/main/CHANGELOG.md" rel="noopener">Changelog<span class="text-lighter">↗</span></a></li></ul></details></li></ul></nav>
+</aside>
+<main>
+  <div class="docs-body">
+    <article class="prose">
+      <h1>CLI reference</h1>
+<p><code>torrz</code> sends one command to the running app and prints its answer. The app has to be
+running: start it with <code>torrz open</code>. Apart from <code>open</code>, every command here is also something
+the window does, and the window&#39;s Log tab shows each of them as it runs.</p>
+<pre><code>torrz [--json] &lt;command&gt; [arguments]
+</code></pre>
+<ul>
+<li><strong>Exit status</strong> is 0 when the command worked and 1 when it did not; the reason goes to
+standard error.</li>
+<li><strong><code>--json</code></strong> prints the app&#39;s raw answer instead of the readable one. It works on every
+command, before or after the command&#39;s name.</li>
+<li><strong><code>torrz help &lt;command&gt;</code></strong> and <code>torrz &lt;command&gt; --help</code> print the same text as below.</li>
+</ul>
+<h2 id="naming-torrents">Naming torrents<a class="anchor" href="#naming-torrents" aria-label="Link to this section">#</a></h2>
+<p>Commands that act on torrents take one or more <strong>targets</strong>:</p>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Means</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>3</code></td>
+<td>The torrent with id 3 (the <code>ID</code> column of <code>torrz list</code>)</td>
+</tr>
+<tr>
+<td>a 40-character info hash</td>
+<td>That torrent</td>
+</tr>
+<tr>
+<td><code>all</code></td>
+<td>Every torrent</td>
+</tr>
+<tr>
+<td><code>selected</code></td>
+<td>Whatever is selected in the window right now</td>
+</tr>
+</tbody></table></div>
+<p>Ids are handed out by the engine as torrents are added. An info hash is the name to use
+in a script that must find the same torrent later. An unknown target is an error and nothing
+is changed.</p>
+<h2 id="rates">Rates<a class="anchor" href="#rates" aria-label="Link to this section">#</a></h2>
+<p>Speed limits are a number with a unit: <code>800k</code>, <code>12M</code>, <code>1.5m</code>, <code>2G</code> (binary: 1 k is 1024
+bytes), all per second. <code>none</code>, <code>off</code>, <code>unlimited</code> and <code>0</code> remove the limit.</p>
+<h2 id="starting-the-app">Starting the app<a class="anchor" href="#starting-the-app" aria-label="Link to this section">#</a></h2>
+<h3 id="torrz-open---demo"><code>torrz open [--demo]</code><a class="anchor" href="#torrz-open---demo" aria-label="Link to this section">#</a></h3>
+<p>Starts the app, or brings its window forward if it is already running. It returns once the
+app answers on its socket.</p>
+<p><code>--demo</code> starts a simulated swarm of twelve torrents instead of the real engine. Nothing is
+downloaded and no settings are written, so it is safe for trying things out.</p>
+<p><code>torrz open</code> looks for <code>torrz-app</code> in the same folder as <code>torrz</code>.</p>
+<h2 id="torrents">Torrents<a class="anchor" href="#torrents" aria-label="Link to this section">#</a></h2>
+<h3 id="torrz-list-alias-ls"><code>torrz list</code> (alias <code>ls</code>)<a class="anchor" href="#torrz-list-alias-ls" aria-label="Link to this section">#</a></h3>
+<p>Every torrent, one a line.</p>
+<pre><code> ID  NAME                                SIZE   DONE  STATUS            DOWN         UP      ETA  RATIO
+  1  ubuntu-26.10-desktop-amd64.iso    6.1 GB    64%  Downloading  18.4 MB/s   1.2 MB/s   2m 01s   0.21
+</code></pre>
+<p>With <code>--json</code>, <code>data</code> is a list of torrents:</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: 1,
+  &quot;hash&quot;: &quot;00000000000000000000000013dd308412e341c8&quot;,
+  &quot;name&quot;: &quot;ubuntu-26.10-desktop-amd64.iso&quot;,
+  &quot;state&quot;: &quot;paused&quot;,
+  &quot;error&quot;: null,
+  &quot;size&quot;: 6549825126,
+  &quot;done&quot;: 4193518281,
+  &quot;uploaded&quot;: 880403063,
+  &quot;down&quot;: 0,
+  &quot;up&quot;: 0,
+  &quot;eta_secs&quot;: null,
+  &quot;peers_live&quot;: 0,
+  &quot;peers_seen&quot;: 312,
+  &quot;pieces&quot;: 3123,
+  &quot;save_path&quot;: &quot;~/Downloads&quot;,
+  &quot;category&quot;: &quot;Linux ISOs&quot;,
+  &quot;trackers&quot;: [&quot;torrent.ubuntu.com&quot;]
+}
+</code></pre>
+<p>Sizes are bytes and speeds are bytes a second. <code>state</code> is one of <code>downloading</code>, <code>seeding</code>,
+<code>paused</code>, <code>checking</code>, <code>queued</code>, <code>completed</code> or <code>error</code>.</p>
+<h3 id="torrz-show-target"><code>torrz show &lt;target&gt;</code><a class="anchor" href="#torrz-show-target" aria-label="Link to this section">#</a></h3>
+<p>One torrent with its files, its connected peers and how many pieces it has. With <code>--json</code>,
+<code>data</code> is <code>{&quot;torrent&quot;: …, &quot;detail&quot;: …}</code>, where <code>detail</code> has <code>files</code> (index, path, size,
+bytes done, whether it is included), <code>peers</code>, <code>pieces_have</code> and <code>piece_map</code> (piece
+availability squeezed into at most 600 cells, each 0 to 255).</p>
+<p>Each peer has <code>addr</code>, <code>client</code>, <code>state</code>, <code>kind</code> (<code>tcp</code>, <code>utp</code> or <code>socks</code>), <code>downloaded</code> and
+<code>uploaded</code> (bytes so far), <code>down</code> and <code>up</code> (bytes a second, measured between snapshots, so
+0 on the first look), <code>pieces</code> (pieces it gave that passed their hash check) and <code>piece_ms</code>
+(the average time one took). Peers are listed fastest first. librqbit doesn&#39;t report a
+peer&#39;s own progress, so Torrz can&#39;t tell seeds from other downloaders.</p>
+<h3 id="torrz-add-source---paused---dir-dir---category-name---trash"><code>torrz add &lt;source&gt; [--paused] [--dir &lt;dir&gt;] [--category &lt;name&gt;] [--trash]</code><a class="anchor" href="#torrz-add-source---paused---dir-dir---category-name---trash" aria-label="Link to this section">#</a></h3>
+<p>Adds a magnet link, an http(s) URL of a <code>.torrent</code>, or the path of a <code>.torrent</code> file. Quote
+magnet links: they contain <code>&amp;</code>.</p>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>--paused</code></td>
+<td>Add it without starting it</td>
+</tr>
+<tr>
+<td><code>--dir &lt;dir&gt;</code></td>
+<td>Save it there instead of the download folder</td>
+</tr>
+<tr>
+<td><code>--category &lt;name&gt;</code></td>
+<td>File it under that category</td>
+</tr>
+<tr>
+<td><code>--trash</code></td>
+<td>Move the <code>.torrent</code> file to the Trash once it is added. Refused for a magnet link or a URL</td>
+</tr>
+</tbody></table></div>
+<p>Files already in the folder are checked and kept, so adding a torrent you partly have
+resumes it. <code>data</code> is <code>{&quot;id&quot;: N, &quot;trashed&quot;: true|false}</code>. If the torrent is added but the
+file can&#39;t be moved to the Trash, the command still succeeds and the message says why.</p>
+<p>The app reads the path, so give it absolute (or starting with <code>~/</code>).</p>
+<h3 id="torrz-pause-targets-and-torrz-resume-targets-alias-start"><code>torrz pause &lt;targets…&gt;</code> and <code>torrz resume &lt;targets…&gt;</code> (alias <code>start</code>)<a class="anchor" href="#torrz-pause-targets-and-torrz-resume-targets-alias-start" aria-label="Link to this section">#</a></h3>
+<p>Pauses or resumes. <code>data</code> is the list of ids affected.</p>
+<h3 id="torrz-rm-targets---delete-files-alias-remove"><code>torrz rm &lt;targets…&gt; [--delete-files]</code> (alias <code>remove</code>)<a class="anchor" href="#torrz-rm-targets---delete-files-alias-remove" aria-label="Link to this section">#</a></h3>
+<p>Removes torrents from the list. Their downloaded files stay on disk unless you pass
+<code>--delete-files</code>, which deletes them and cannot be undone. The command line does not ask
+for confirmation; the window does.</p>
+<h3 id="torrz-files-target---include-02---skip-3"><code>torrz files &lt;target&gt; [--include 0,2] [--skip 3]</code><a class="anchor" href="#torrz-files-target---include-02---skip-3" aria-label="Link to this section">#</a></h3>
+<p>Chooses which files of a torrent to download. Indices are the ones <code>torrz show</code> prints,
+comma separated. Files you name neither way are left as they are. <code>data</code> is the list of
+indices that will be downloaded.</p>
+<h3 id="torrz-category-targets---name-name-or---clear"><code>torrz category &lt;targets…&gt; --name &lt;name&gt;</code> or <code>--clear</code><a class="anchor" href="#torrz-category-targets---name-name-or---clear" aria-label="Link to this section">#</a></h3>
+<p>Puts torrents in a category, or takes them out of theirs. Categories exist only as long as
+a torrent is in them; there is nothing to create first.</p>
+<h3 id="torrz-reveal-target"><code>torrz reveal &lt;target&gt;</code><a class="anchor" href="#torrz-reveal-target" aria-label="Link to this section">#</a></h3>
+<p>Shows the torrent&#39;s files in Finder (or the system&#39;s file manager) and prints their path.</p>
+<h3 id="torrz-watch-dir---off---trash-onoff"><code>torrz watch [&lt;dir&gt;] [--off] [--trash on|off]</code><a class="anchor" href="#torrz-watch-dir---off---trash-onoff" aria-label="Link to this section">#</a></h3>
+<p>Watches a folder: every <code>.torrent</code> file that arrives in it is added, as <code>torrz add</code> would
+add it, within a couple of seconds. The files already in the folder when you start watching
+it are left alone. With <code>--trash on</code>, each file goes to the Trash once it is added; with
+<code>--trash off</code> it stays, and Torrz remembers it so it isn&#39;t added again. <code>--off</code> stops
+watching. With no arguments it only reports what is watched.</p>
+<pre><code class="language-sh">torrz watch ~/Downloads --trash on
+torrz watch --trash off            # keep the folder, change what happens to the files
+torrz watch --off
+</code></pre>
+<p><code>data</code> is <code>{&quot;dir&quot;: &quot;/Users/you/Downloads&quot;, &quot;trash&quot;: true}</code> (<code>dir</code> is <code>null</code> when nothing is
+watched). Adds made by the watched folder show in the Log tab as coming from <code>watch</code>.</p>
+<h3 id="torrz-trackers-best---refresh"><code>torrz trackers best [--refresh]</code><a class="anchor" href="#torrz-trackers-best---refresh" aria-label="Link to this section">#</a></h3>
+<p>The best public trackers, fastest first, as <code>{&quot;url&quot;, &quot;ms&quot;}</code> objects in <code>data</code>: newTrackon&#39;s
+stable list, probed from this machine (a UDP handshake for <code>udp://</code>, a request to the
+announce URL for <code>http(s)://</code>), with the silent ones dropped and at most 20 kept, one per
+host. The ranking is kept for six hours; <code>--refresh</code> probes again. The demo answers with a
+made-up list and never touches the network.</p>
+<pre><code>$ torrz trackers best
+   40 ms  udp://tracker.willy.pro:6969/announce
+   87 ms  udp://tracker.cn.nyaa.net:6969/announce
+  …
+</code></pre>
+<h3 id="torrz-trackers-add-targets---url-url"><code>torrz trackers add &lt;targets…&gt; [--url &lt;url&gt;]…</code><a class="anchor" href="#torrz-trackers-add-targets---url-url" aria-label="Link to this section">#</a></h3>
+<p>Gives torrents the best public trackers, or the <code>--url</code> ones instead. A tracker whose host a
+torrent already has is skipped, and private torrents are skipped (they may only use their
+own tracker). <code>data</code> lists each torrent as <code>{&quot;id&quot;, &quot;now&quot;, &quot;added&quot;}</code>: the real engine adds a
+torrent again to change its trackers, and <code>now</code> is its id afterwards. Its files, file
+choices, paused state and resume data carry over.</p>
+<h3 id="torrz-trackers-auto-onoff"><code>torrz trackers auto [on|off]</code><a class="anchor" href="#torrz-trackers-auto-onoff" aria-label="Link to this section">#</a></h3>
+<p>Whether each new torrent gets the best public trackers as it is added; with no argument it
+toggles. A <code>.torrent</code> file marked private, or a magnet link whose tracker carries a passkey,
+keeps only its own. A torrent added from an http(s) URL keeps its own too, since whether it is
+private isn&#39;t known until librqbit has downloaded it.</p>
+<h2 id="session">Session<a class="anchor" href="#session" aria-label="Link to this section">#</a></h2>
+<h3 id="torrz-stats"><code>torrz stats</code><a class="anchor" href="#torrz-stats" aria-label="Link to this section">#</a></h3>
+<p>Current speeds and limits, whether the alternate limits are on, the number of DHT nodes,
+the listening port, the download folder and its free space.</p>
+<pre><code class="language-json">{
+  &quot;down&quot;: 29367796,
+  &quot;up&quot;: 8243857,
+  &quot;limit_down&quot;: null,
+  &quot;limit_up&quot;: null,
+  &quot;alt_limits&quot;: false,
+  &quot;dht_nodes&quot;: 412,
+  &quot;port&quot;: 51413,
+  &quot;free_disk&quot;: 871878361088,
+  &quot;download_dir&quot;: &quot;~/Downloads&quot;,
+  &quot;watch_dir&quot;: null,
+  &quot;watch_trash&quot;: false,
+  &quot;auto_trackers&quot;: false
+}
+</code></pre>
+<h3 id="torrz-limit---down-rate---up-rate"><code>torrz limit [--down &lt;rate&gt;] [--up &lt;rate&gt;]</code><a class="anchor" href="#torrz-limit---down-rate---up-rate" aria-label="Link to this section">#</a></h3>
+<p>Sets one or both limits; the side you leave out is unchanged. While the alternate limits
+are on, this changes the alternate pair, since those are the ones in force.</p>
+<h3 id="torrz-alt-limits-onoff"><code>torrz alt-limits [on|off]</code><a class="anchor" href="#torrz-alt-limits-onoff" aria-label="Link to this section">#</a></h3>
+<p>Switches to the alternate limits and back; with no argument it toggles. A fresh install&#39;s
+alternates are 1 MB/s down and 256 kB/s up.</p>
+<h2 id="the-window-torrz-ui">The window: <code>torrz ui …</code><a class="anchor" href="#the-window-torrz-ui" aria-label="Link to this section">#</a></h2>
+<p>These move the window itself. They need a window process but not a visible window: they
+work while it is hidden.</p>
+<h3 id="torrz-ui-state"><code>torrz ui state</code><a class="anchor" href="#torrz-ui-state" aria-label="Link to this section">#</a></h3>
+<p>Everything the window shows, as JSON: the filter, the rows in the table in order, the
+selection, the sort, the search text, the inspector tab, whether the sidebar and inspector
+are open, any open dialog with its fields, the palette with its rows and their command
+lines, the toast, the icon style, and the last twenty log lines.</p>
+<pre><code class="language-json">{
+  &quot;filter&quot;: &quot;paused&quot;,
+  &quot;title&quot;: &quot;Paused&quot;,
+  &quot;rows&quot;: [1, 9],
+  &quot;selected&quot;: [1],
+  &quot;sort&quot;: null,
+  &quot;search&quot;: &quot;&quot;,
+  &quot;tab&quot;: &quot;general&quot;,
+  &quot;sidebar&quot;: true,
+  &quot;inspector&quot;: true,
+  &quot;dialog&quot;: null,
+  &quot;palette&quot;: null,
+  &quot;toast&quot;: null,
+  &quot;icon&quot;: &quot;auto&quot;,
+  &quot;magnet_default&quot;: false,
+  &quot;demo&quot;: true,
+  &quot;log&quot;: [
+    { &quot;time&quot;: &quot;02:19:33&quot;, &quot;from&quot;: &quot;cli&quot;, &quot;command&quot;: &quot;torrz ui select 1&quot;, &quot;result&quot;: &quot;selected 1 torrent&quot;, &quot;ok&quot;: true }
+  ]
+}
+</code></pre>
+<h3 id="list-and-selection">List and selection<a class="anchor" href="#list-and-selection" aria-label="Link to this section">#</a></h3>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>torrz ui filter &lt;name&gt;</code></td>
+<td>Shows one group: <code>all</code>, <code>downloading</code>, <code>seeding</code>, <code>completed</code>, <code>paused</code>, <code>errors</code>, <code>category:&lt;name&gt;</code>, <code>tracker:&lt;host&gt;</code>, or <code>tracker:dht</code> for torrents with no tracker</td>
+</tr>
+<tr>
+<td><code>torrz ui select [targets…]</code></td>
+<td>Selects torrents; with none, clears the selection. The last one named is the one the inspector shows</td>
+</tr>
+<tr>
+<td><code>torrz ui search &lt;text&gt;</code></td>
+<td>Keeps rows whose name contains every word; <code>&quot;&quot;</code> clears it</td>
+</tr>
+<tr>
+<td><code>torrz ui sort &lt;column&gt; [--asc|--desc]</code></td>
+<td>Sorts by <code>name</code>, <code>size</code>, <code>progress</code>, <code>status</code>, <code>down</code>, <code>up</code>, <code>eta</code>, <code>ratio</code> or <code>peers</code>; with neither flag, sorting the same column again reverses it. <code>added</code> restores the original order</td>
+</tr>
+</tbody></table></div>
+<h3 id="layout">Layout<a class="anchor" href="#layout" aria-label="Link to this section">#</a></h3>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>torrz ui tab &lt;name&gt;</code></td>
+<td>Shows an inspector tab: <code>general</code>, <code>files</code>, <code>peers</code>, <code>trackers</code>, <code>pieces</code> or <code>log</code> (and opens the inspector)</td>
+</tr>
+<tr>
+<td><code>torrz ui sidebar [on|off]</code></td>
+<td>Shows, hides or toggles the sidebar</td>
+</tr>
+<tr>
+<td><code>torrz ui inspector [on|off]</code></td>
+<td>Shows, hides or toggles the inspector</td>
+</tr>
+<tr>
+<td><code>torrz ui icon &lt;style&gt;</code></td>
+<td>The Dock icon while Torrz runs: <code>auto</code> (follows the system), <code>light</code> or <code>dark</code></td>
+</tr>
+<tr>
+<td><code>torrz ui window &lt;action&gt;</code></td>
+<td><code>show</code>, <code>hide</code> (torrents keep running), <code>minimize</code> or <code>quit</code></td>
+</tr>
+<tr>
+<td><code>torrz ui copy &lt;what&gt; &lt;target&gt;</code></td>
+<td>Copies a torrent&#39;s <code>name</code>, <code>hash</code> or <code>magnet</code> link to the clipboard; <code>data</code> is the text</td>
+</tr>
+<tr>
+<td><code>torrz ui default-app</code></td>
+<td>Asks macOS to open magnet links with Torrz. macOS asks you to confirm, and the answer arrives as a toast. <code>magnet_default</code> in <code>torrz ui state</code> says whether it does (<code>null</code> when Torrz isn&#39;t running from its app bundle)</td>
+</tr>
+</tbody></table></div>
+<h3 id="command-palette">Command palette<a class="anchor" href="#command-palette" aria-label="Link to this section">#</a></h3>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>torrz ui palette [on|off] [--query &lt;text&gt;]</code></td>
+<td>Opens, closes or toggles it; <code>--query</code> types into it</td>
+</tr>
+<tr>
+<td><code>torrz ui palette-move &lt;n&gt;</code></td>
+<td>Moves the highlight <code>n</code> rows (negative is up; it wraps)</td>
+</tr>
+<tr>
+<td><code>torrz ui palette-run</code></td>
+<td>Runs the highlighted row and closes the palette</td>
+</tr>
+</tbody></table></div>
+<h3 id="dialogs">Dialogs<a class="anchor" href="#dialogs" aria-label="Link to this section">#</a></h3>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>torrz ui dialog &lt;name&gt;</code></td>
+<td>Opens <code>add</code>, <code>remove</code>, <code>limits</code> or <code>watch</code>; <code>none</code> closes whichever is open. <code>remove</code> needs a selection</td>
+</tr>
+<tr>
+<td><code>torrz ui field &lt;name&gt; &lt;value&gt;</code></td>
+<td>Sets a field of the open dialog (table below)</td>
+</tr>
+<tr>
+<td><code>torrz ui confirm</code></td>
+<td>Presses the dialog&#39;s main button</td>
+</tr>
+<tr>
+<td><code>torrz ui cancel</code></td>
+<td>Closes the palette if it is open, otherwise the dialog</td>
+</tr>
+</tbody></table></div>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Dialog</th>
+<th>Fields</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>add</code></td>
+<td><code>source</code> (text), <code>paused</code> (<code>on</code> or <code>off</code>), <code>trash</code> (<code>on</code> or <code>off</code>; used only when <code>source</code> is a <code>.torrent</code> file)</td>
+</tr>
+<tr>
+<td><code>remove</code></td>
+<td><code>delete-files</code> (<code>on</code> or <code>off</code>)</td>
+</tr>
+<tr>
+<td><code>limits</code></td>
+<td><code>down</code>, <code>up</code> (a rate, or empty for none)</td>
+</tr>
+<tr>
+<td><code>watch</code></td>
+<td><code>dir</code> (a folder, or empty to stop watching), <code>trash</code> (<code>on</code> or <code>off</code>)</td>
+</tr>
+</tbody></table></div>
+<p>A dialog is the long way round: <code>torrz add</code>, <code>torrz rm</code>, <code>torrz limit</code> and <code>torrz watch</code> do the same work
+directly. The dialog commands exist so a script can drive the window exactly as a person
+would, for demos and tests.</p>
+<p><code>torrz ui confirm</code> and <code>torrz ui palette-run</code> answer as soon as the engine has been asked,
+with <code>running torrz …</code>; the outcome is in <code>torrz ui state</code>&#39;s log.</p>
+<h2 id="environment">Environment<a class="anchor" href="#environment" aria-label="Link to this section">#</a></h2>
+<div class="table"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>TORRZ_HOME</code></td>
+<td>The data folder (settings, session, socket)</td>
+</tr>
+<tr>
+<td><code>TORRZ_SOCK</code></td>
+<td>The socket&#39;s path alone. Unix socket paths are limited to about 100 characters</td>
+</tr>
+</tbody></table></div>
+
+      <nav class="page-foot" aria-label="Pages">
+    <span><a href="/docs/">← Getting started</a></span>
+    <span><a href="/docs/architecture/">Architecture →</a></span>
+  </nav>
+    </article>
+    <aside class="toc" aria-label="On this page"><nav><h2>On this page</h2><ul><li><a href="#naming-torrents">Naming torrents</a></li><li><a href="#rates">Rates</a></li><li><a href="#starting-the-app">Starting the app</a></li><li><a href="#torrz-open---demo" class="sub">torrz open</a></li><li><a href="#torrents">Torrents</a></li><li><a href="#torrz-list-alias-ls" class="sub">torrz list</a></li><li><a href="#torrz-show-target" class="sub">torrz show</a></li><li><a href="#torrz-add-source---paused---dir-dir---category-name---trash" class="sub">torrz add</a></li><li><a href="#torrz-pause-targets-and-torrz-resume-targets-alias-start" class="sub">torrz pause</a></li><li><a href="#torrz-rm-targets---delete-files-alias-remove" class="sub">torrz rm</a></li><li><a href="#torrz-files-target---include-02---skip-3" class="sub">torrz files</a></li><li><a href="#torrz-category-targets---name-name-or---clear" class="sub">torrz category</a></li><li><a href="#torrz-reveal-target" class="sub">torrz reveal</a></li><li><a href="#torrz-watch-dir---off---trash-onoff" class="sub">torrz watch</a></li><li><a href="#torrz-trackers-best---refresh" class="sub">torrz trackers best</a></li><li><a href="#torrz-trackers-add-targets---url-url" class="sub">torrz trackers add</a></li><li><a href="#torrz-trackers-auto-onoff" class="sub">torrz trackers auto</a></li><li><a href="#session">Session</a></li><li><a href="#torrz-stats" class="sub">torrz stats</a></li><li><a href="#torrz-limit---down-rate---up-rate" class="sub">torrz limit</a></li><li><a href="#torrz-alt-limits-onoff" class="sub">torrz alt-limits</a></li><li><a href="#the-window-torrz-ui">The window: torrz ui …</a></li><li><a href="#torrz-ui-state" class="sub">torrz ui state</a></li><li><a href="#list-and-selection" class="sub">List and selection</a></li><li><a href="#layout" class="sub">Layout</a></li><li><a href="#command-palette" class="sub">Command palette</a></li><li><a href="#dialogs" class="sub">Dialogs</a></li><li><a href="#environment">Environment</a></li></ul></nav></aside>
+  </div>
+  <footer class="site-footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-6">
+        <a class="brand" href="/"><img src="/icon.svg" alt="" width="24" height="24">Torrz</a>
+        <p>A BitTorrent client where every button is also a command. MIT licensed. This site is built with <a href="https://oat.ink" rel="noopener">Oat</a>.</p>
+      </div>
+      <nav class="col-6 hstack gap-4" aria-label="Footer">
+        <a href="/docs/">Docs</a>
+        <a href="/docs/cli/">CLI reference</a>
+        <a href="https://github.com/imran-vz/torrz" rel="noopener">GitHub</a>
+        <a href="https://github.com/imran-vz/torrz/issues" rel="noopener">Issues</a>
+        <a href="https://github.com/imran-vz/torrz/blob/main/CHANGELOG.md" rel="noopener">Changelog</a>
+        <a href="https://github.com/imran-vz/torrz/blob/main/LICENSE" rel="noopener">License</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+</main>
+</body>
+</html>

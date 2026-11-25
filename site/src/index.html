@@ -1,0 +1,221 @@
+{{head}}
+<body>
+{{header}}
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container">
+      <span class="badge outline"><span class="dot"></span>Open source, for macOS</span>
+      <h1 id="hero-title">A BitTorrent client where every click is <em>a command</em>.</h1>
+      <p class="lede">Torrz is a desktop torrent client written in Rust. Every button in the window has a matching <code>torrz</code> command, so anything you can do with the mouse, you can also put in a script.</p>
+      <div class="hstack">
+        <a class="button large" href="/docs/">Get started</a>
+        <a class="button outline large" href="{{github}}" rel="noopener"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+      </div>
+      <p class="meta"><small class="text-light">MIT licensed. No account, nothing phoning home.</small></p>
+      <div class="hero-shot">
+        <div class="shot"><img src="/screens/selected.webp" width="2360" height="1480" alt="The Torrz window: a sidebar of filters and categories, a table of torrents with progress bars, and an inspector showing the selected torrent's pieces and speed graph." fetchpriority="high"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="parity" class="section" aria-labelledby="parity-title">
+    <div class="container">
+      <div class="section-head">
+        <div class="kicker">How it works</div>
+        <h2 id="parity-title">Every button is a command</h2>
+        <p>Clicking Pause, pressing Space, choosing Pause in the ⌘K palette and running <code>torrz pause selected</code> all end up in the same function. The terminal has no separate code path, so it can't fall behind the window.</p>
+      </div>
+      <div class="row parity">
+        <div class="col-7 card">
+          <div class="table">
+            <table>
+              <thead><tr><th scope="col">In the window</th><th scope="col">In the terminal</th></tr></thead>
+              <tbody>
+                <tr><td>Pause the selection</td><td><code>torrz pause selected</code></td></tr>
+                <tr><td>Show only downloading</td><td><code>torrz ui filter downloading</code></td></tr>
+                <tr><td>Open the Peers tab</td><td><code>torrz ui tab peers</code></td></tr>
+                <tr><td>Add the best trackers</td><td><code>torrz trackers add 3</code></td></tr>
+                <tr><td>Copy the magnet link</td><td><code>torrz ui copy magnet 3</code></td></tr>
+                <tr><td>Set speed limits</td><td><code>torrz limit --down 12M</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-5 vstack justify-center">
+          <h3>The window shows you the command for what you just did.</h3>
+          <p class="text-light">Each row in the palette lists its command, and ⌘C copies it. The Log tab keeps everything that ran, clicked or typed, as the exact command line along with what came back.</p>
+          <ul>
+            <li>Add a control without a command and a test fails.</li>
+            <li>Commands answer in JSON when you ask, and exit non-zero when something goes wrong.</li>
+            <li><code>torrz ui state</code> dumps everything the window is showing.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="section section-soft" aria-labelledby="features-title">
+    <div class="container">
+      <div class="section-head">
+        <div class="kicker">Features</div>
+        <h2 id="features-title">What it does</h2>
+        <p>The things you'd expect from a torrent client, each with its own command.</p>
+      </div>
+      <div class="row">
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6a3 3 0 10-3 3h12a3 3 0 10-3-3v12a3 3 0 103-3H6a3 3 0 103 3z"/></svg></div>
+          <h3>Command palette</h3>
+          <p>Press ⌘K and start typing. Actions and torrents show up with their commands next to them, and ⌘C copies the one you're on.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7l1.7-1.7"/></svg></div>
+          <h3>Magnet links</h3>
+          <p>Click a magnet link in your browser and Torrz opens with the Add dialog filled in. If another client has claimed magnet links, one menu item asks macOS to send them to Torrz instead.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 13l2 2 4-4"/></svg></div>
+          <h3>Watched folder</h3>
+          <p>Pick a folder and Torrz adds any <code>.torrent</code> file that appears in it, and can move each one to the Trash afterwards. Files already in the folder are left alone.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 0115 0M8 12a4 4 0 018 0"/><circle cx="12" cy="12" r="1"/><path d="M12 13v8"/></svg></div>
+          <h3>Faster public trackers</h3>
+          <p>Torrz takes newTrackon's list of trackers with good uptime, times each one from your connection, and adds the 20 quickest. It never adds public trackers to a private torrent.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 18V12M9 18V7M14 18v-9M19 18V5"/></svg></div>
+          <h3>Peers</h3>
+          <p>Each peer's live download and upload speed, whether it's on TCP or uTP, and a bar that shows which peers your data is actually coming from.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="4" width="3" height="3"/><rect x="10" y="4" width="3" height="3"/><rect x="16" y="4" width="3" height="3"/><rect x="7" y="7" width="3" height="3"/><rect x="13" y="7" width="3" height="3"/><rect x="4" y="10" width="3" height="3"/><rect x="10" y="10" width="3" height="3"/><rect x="7" y="13" width="3" height="3"/><rect x="4" y="16" width="3" height="3"/></svg></div>
+          <h3>Piece map</h3>
+          <p>Pieces are drawn as dithered cells, in the same style as the icon. A cell that's partly downloaded flickers while data is arriving.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></div>
+          <h3>librqbit underneath</h3>
+          <p>The engine is librqbit, so you get DHT, peer exchange, uTP, UDP trackers, private torrents, per-file selection, fast resume, speed limits and UPnP.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4H6a2 2 0 00-2 2v3a2 2 0 01-1.5 2 2 2 0 011.5 2v3a2 2 0 002 2h2M16 4h2a2 2 0 012 2v3a2 2 0 001.5 2 2 2 0 00-1.5 2v3a2 2 0 01-2 2h-2"/></svg></div>
+          <h3>JSON out</h3>
+          <p>Add <code>--json</code> to any command and pipe it into <code>jq</code>. A script can also drive the window itself: select a row, open a tab, press a dialog's button.</p>
+        </article>
+        <article class="col-4 card feature">
+          <div class="icon-tile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 006 21h12a1.7 1.7 0 001.5-2.5L14 9V3"/><path d="M7 15h10"/></svg></div>
+          <h3>Demo mode</h3>
+          <p><code>torrz open --demo</code> starts twelve fake torrents. Nothing goes over the network or onto your disk, so you can click around without consequences.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="tour" class="section tour" aria-labelledby="tour-title">
+    <div class="container">
+      <div class="section-head">
+        <div class="kicker">Screens</div>
+        <h2 id="tour-title">The inspector</h2>
+        <p>The panel under the torrent list shows one torrent at a time. Here are a few of its tabs.</p>
+      </div>
+      <ot-tabs data-anchor="tour">
+        <div role="tablist" aria-label="Screens">
+          <button role="tab" id="peers">Peers</button>
+          <button role="tab" id="pieces">Pieces</button>
+          <button role="tab" id="palette">Palette</button>
+          <button role="tab" id="watch">Watched folder</button>
+        </div>
+        <figure role="tabpanel">
+          <div class="shot"><img src="/screens/peers.webp" width="2360" height="1480" loading="lazy" alt="The Peers tab: peers ranked by download speed, with TCP and uTP badges and a bar showing where the download comes from."></div>
+          <figcaption>Peers, sorted by who is sending fastest right now.</figcaption>
+        </figure>
+        <figure role="tabpanel">
+          <div class="shot"><img src="/screens/pieces.webp" width="2360" height="1480" loading="lazy" alt="The Pieces tab: a grid of dithered cells, full ones solid, partial ones in a dot pattern."></div>
+          <figcaption>The piece map. Solid cells are done; dotted ones are partway there.</figcaption>
+        </figure>
+        <figure role="tabpanel">
+          <div class="shot"><img src="/screens/palette.webp" width="2360" height="1480" loading="lazy" alt="The command palette over the window, each action listed beside its torrz command line."></div>
+          <figcaption>The ⌘K palette, with each action's command beside it.</figcaption>
+        </figure>
+        <figure role="tabpanel">
+          <div class="shot"><img src="/screens/watch.webp" width="2360" height="1480" loading="lazy" alt="The Watch a Folder dialog with a folder field, a Choose Folder button and a Move to Trash checkbox."></div>
+          <figcaption>Setting up a watched folder.</figcaption>
+        </figure>
+      </ot-tabs>
+    </div>
+  </section>
+
+  <section id="terminal" class="section section-soft" aria-labelledby="terminal-title">
+    <div class="container">
+      <div class="row">
+        <div class="col-5 vstack justify-center">
+          <div class="kicker">Terminal</div>
+          <h2 id="terminal-title">Run it from another terminal</h2>
+          <p class="text-light">While Torrz is open, the <code>torrz</code> command talks to it over a local socket. You can add and pause torrents, choose files, change speed limits, or switch the window's tabs. Answers come back as plain text, or as JSON with <code>--json</code>.</p>
+          <p><a href="/docs/cli/">Read the CLI reference →</a></p>
+        </div>
+        <div class="col-7">
+          <div class="term" role="region" aria-label="Example terminal session">
+            <div class="term-bar"><i></i><i></i><i></i><span>~ zsh</span></div>
+<pre><code><span class="p">$ </span>torrz add 'magnet:?xt=urn:btih:…' --category "Linux ISOs"
+<span class="o ok">added #3</span>
+<span class="p">$ </span>torrz trackers add 3
+<span class="o ok">added 20 trackers to 1 torrent</span>
+<span class="p">$ </span>torrz limit --down 12M --up none
+<span class="o">limits: down 12.0 MB/s, up unlimited</span>
+<span class="p">$ </span>torrz list --json | jq -r '.data[] | select(.state == "seeding") | .name'
+<span class="o">Fedora-Workstation-Live-43-1.6.iso</span>
+<span class="o">debian-13.2.0-arm64-DVD-1.iso</span>
+<span class="p">$ </span>torrz ui tab peers   <span class="c"># the window follows</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install" class="section" aria-labelledby="install-title">
+    <div class="container">
+      <div class="section-head">
+        <div class="kicker">Install</div>
+        <h2 id="install-title">Install</h2>
+        <p>There's no download yet, so you build it from source. You need Rust, and Xcode for the Mac app.</p>
+      </div>
+      <div class="row steps">
+        <div class="col-4 card step">
+          <h3>Get the code</h3>
+          <p>Clone the repository.</p>
+          <pre><code>git clone https://github.com/imran-vz/torrz
+cd torrz</code></pre>
+        </div>
+        <div class="col-4 card step">
+          <h3>Build the app</h3>
+          <p>This makes <code>dist/Torrz.app</code>, which handles magnet links.</p>
+          <pre><code>scripts/make-app.sh
+cp -R dist/Torrz.app /Applications/</code></pre>
+        </div>
+        <div class="col-4 card step">
+          <h3>Open it</h3>
+          <p>Or start the demo if you'd rather look around first.</p>
+          <pre><code>open /Applications/Torrz.app
+torrz open --demo</code></pre>
+        </div>
+      </div>
+      <p class="align-center text-light mt-8"><small>Torrz is early. It downloads and seeds real torrents on macOS. Linux should build, but nobody has tried it yet, and on Windows the command line doesn't work. The <a href="/docs/">getting started guide</a> has the details.</small></p>
+    </div>
+  </section>
+
+  <section class="section section-soft closing align-center" aria-labelledby="closing-title">
+    <div class="container">
+      <img src="/icon.svg" alt="" width="88" height="88" loading="lazy">
+      <h2 id="closing-title">Help build it</h2>
+      <p class="text-light">Bug reports and pull requests are welcome. There's one house rule: if you add a button, add its command too.</p>
+      <div class="hstack justify-center mt-6">
+        <a class="button" href="/docs/">Read the docs</a>
+        <a class="button outline" href="{{github}}/blob/main/CONTRIBUTING.md" rel="noopener">Contribute</a>
+      </div>
+    </div>
+  </section>
+</main>
+{{footer}}
+</body>
+</html>

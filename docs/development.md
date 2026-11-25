@@ -113,6 +113,32 @@ TORRZ_SIGN="Developer ID Application: Your Name (TEAMID)" scripts/make-app.sh
 
 The bundle is not notarised.
 
+## The website
+
+`site/` holds the website: a static landing page and these docs, served by Cloudflare. The
+docs pages are made from the Markdown in `docs/`, so after changing a doc, rebuild:
+
+```sh
+cd site
+npm install            # once: the Markdown renderer
+npm run build          # writes site/public
+```
+
+Commit `site/public` with the change. The landing page is `site/src/index.html`. The site
+is built on [Oat](https://oat.ink), a small classless UI library: it styles the semantic
+HTML and supplies the grid (`.row`, `.col-*`), cards, buttons, tables, tabs (`<ot-tabs>`)
+and the docs sidebar (`data-sidebar-layout`). Oat 1.1.0 is vendored in `site/public/vendor/oat`
+with its license; `site/public/assets/site.css` holds Torrz's theme (Oat's variables) and the
+few pieces Oat has no component for. Prefer an Oat component or class to new CSS. Screenshots in `site/public/screens/`
+come from `torrz-app --snap` (see above) at `--scale 2`, saved as WebP.
+
+The link preview card, `site/public/og.png`, is drawn as HTML in `site/og/og.html`; run
+`site/og/render.sh` after changing it (it uses headless Chrome).
+
+To deploy, sign in once with `npx wrangler login`, then run `npm run deploy` (build, then
+upload). `npx wrangler dev` serves the site locally first. Nothing runs on the server: the
+Worker named in `site/wrangler.jsonc` serves the files in `site/public` as they are.
+
 ## Updating Rune
 
 Rune is pre-release and is used as a git dependency pinned to one revision of its `dev`

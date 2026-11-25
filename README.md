@@ -2,14 +2,19 @@
 
 # Torrz
 
+[![CI](https://github.com/imran-vz/torrz/actions/workflows/ci.yml/badge.svg)](https://github.com/imran-vz/torrz/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Website](https://img.shields.io/badge/website-torrz.imran.codes-4c9bff.svg)](https://torrz.imran.codes)
+
 A desktop BitTorrent client whose every control is also a command.
+**[Website and docs](https://torrz.imran.codes)**
 
 Anything you can click in the window, you can run from a terminal as `torrz …`, and the
 window shows you the command for what you just clicked. The window is drawn with
 [Rune](https://github.com/anomalyco/rune); the torrent engine is
 [librqbit](https://github.com/ikatson/rqbit). Both are Rust, and so is everything in between.
 
-![The Torrz window: sidebar, torrent table and inspector](design/screens/selected.png)
+![The Torrz window: sidebar, torrent table and inspector](site/public/screens/selected.webp)
 
 > **Status:** early. It downloads and seeds real torrents and is tested on macOS. Linux
 > should build but is untested; Windows has no command line yet. See
@@ -155,12 +160,21 @@ from the palette ("App Icon") or with `torrz ui icon auto|light|dark`.
 
 ## Documentation
 
+The same pages are on the [website](https://torrz.imran.codes/docs/).
+
+- [Getting started](docs/getting-started.md): install, first run, and everyday use.
 - [CLI reference](docs/cli.md): every command, with the JSON it returns.
 - [Architecture](docs/architecture.md): how a click and a command line become the same
   thing, the threads, and the socket protocol.
 - [Development](docs/development.md): building, testing, headless screenshots, adding a
   command, the icon and the bundle, and updating Rune.
-- [Contributing](CONTRIBUTING.md).
+- [Changelog](CHANGELOG.md).
+
+## Contributing
+
+Issues and pull requests are welcome; start with [CONTRIBUTING.md](CONTRIBUTING.md). Everyone
+taking part follows the [code of conduct](CODE_OF_CONDUCT.md). Please report security
+problems privately, as [SECURITY.md](SECURITY.md) describes, not as issues.
 
 ## Where things are kept
 
